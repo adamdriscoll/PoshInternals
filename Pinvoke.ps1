@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.IO;
 using System.ComponentModel;
 using System.Runtime.ConstrainedExecution;
 using System.Runtime.InteropServices;
@@ -51,34 +52,22 @@ public static class AuthenticodeTools
 
 internal struct WINTRUST_FILE_INFO : IDisposable
 {
-
     public WINTRUST_FILE_INFO(string fileName, Guid subject)
     {
-
         cbStruct = (uint)Marshal.SizeOf(typeof(WINTRUST_FILE_INFO));
-
         pcwszFilePath = fileName;
-
-
 
         if (subject != Guid.Empty)
         {
-
             pgKnownSubject = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(Guid)));
-
             Marshal.StructureToPtr(subject, pgKnownSubject, true);
-
         }
-
         else
         {
-
             pgKnownSubject = IntPtr.Zero;
-
         }
 
         hFile = IntPtr.Zero;
-
     }
 
     public uint cbStruct;
@@ -183,7 +172,6 @@ enum UIContext
 
 internal struct WINTRUST_DATA : IDisposable
 {
-
     public WINTRUST_DATA(WINTRUST_FILE_INFO fileInfo)
     {
 
@@ -609,14 +597,20 @@ internal sealed class UnmanagedPointer : IDisposable
         }
     }
 
+    [StructLayout(LayoutKind.Sequential, Pack = 4)]
+    public struct MINIDUMP_EXCEPTION_INFORMATION
+    {
+        public uint ThreadId;
+        public IntPtr ExceptionPointers;
+        public int ClientPointers;
+    }
+
     public enum NT_STATUS
     {
         STATUS_SUCCESS = 0x00000000,
         STATUS_BUFFER_OVERFLOW = unchecked((int) 0x80000005L),
         STATUS_INFO_LENGTH_MISMATCH = unchecked((int) 0xC0000004L)
     }
-
-
 
     public enum SYSTEM_INFORMATION_CLASS
     {
@@ -652,9 +646,49 @@ internal sealed class UnmanagedPointer : IDisposable
         MOVEFILE_FAIL_IF_NOT_TRACKABLE      = 0x00000020
     }
 
+    public enum MINIDUMP_TYPE 
+    { 
+      MiniDumpNormal                          = 0x00000000,
+      MiniDumpWithDataSegs                    = 0x00000001,
+      MiniDumpWithFullMemory                  = 0x00000002,
+      MiniDumpWithHandleData                  = 0x00000004,
+      MiniDumpFilterMemory                    = 0x00000008,
+      MiniDumpScanMemory                      = 0x00000010,
+      MiniDumpWithUnloadedModules             = 0x00000020,
+      MiniDumpWithIndirectlyReferencedMemory  = 0x00000040,
+      MiniDumpFilterModulePaths               = 0x00000080,
+      MiniDumpWithProcessThreadData           = 0x00000100,
+      MiniDumpWithPrivateReadWriteMemory      = 0x00000200,
+      MiniDumpWithoutOptionalData             = 0x00000400,
+      MiniDumpWithFullMemoryInfo              = 0x00000800,
+      MiniDumpWithThreadInfo                  = 0x00001000,
+      MiniDumpWithCodeSegs                    = 0x00002000,
+      MiniDumpWithoutAuxiliaryState           = 0x00004000,
+      MiniDumpWithFullAuxiliaryState          = 0x00008000,
+      MiniDumpWithPrivateWriteCopyMemory      = 0x00010000,
+      MiniDumpIgnoreInaccessibleMemory        = 0x00020000,
+      MiniDumpWithTokenInformation            = 0x00040000,
+      MiniDumpWithModuleHeaders               = 0x00080000,
+      MiniDumpFilterTriage                    = 0x00100000,
+      MiniDumpValidTypeFlags                  = 0x001fffff
+    }
+
     public static class NativeMethods
     {
         public const int MAX_PATH = 260;
+
+        [DllImport("Kernel32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+        public static extern IntPtr CreateFile(
+            string fileName,
+            [MarshalAs(UnmanagedType.U4)] FileAccess fileAccess,
+            [MarshalAs(UnmanagedType.U4)] FileShare fileShare,
+            int securityAttributes,
+            [MarshalAs(UnmanagedType.U4)] FileMode creationDisposition,
+            int flags,
+            IntPtr template);
+
+        [DllImport("Dbghelp.dll")]
+        public static extern bool MiniDumpWriteDump(IntPtr hProcess, uint ProcessId, IntPtr hFile, MINIDUMP_TYPE DumpType, IntPtr ExceptionParam, IntPtr UserStreamParam, IntPtr CallbackParam);
 
         [DllImport("ntdll.dll")]
         public static extern NT_STATUS NtQuerySystemInformation(
@@ -737,7 +771,7 @@ public class ActivationContext
             ReleaseActCtx(hActCtx);
         }
 
-       [DllImport("kernel32.dll")]
+        [DllImport("kernel32.dll")]
         private static extern IntPtr CreateActCtx(ref ACTCTX actctx);
 
         [StructLayout(LayoutKind.Sequential)]
@@ -780,7 +814,7 @@ public class ActivationContext
         private const uint FORMAT_MESSAGE_ALLOCATE_BUFFER = 0x00000100;
         private const uint FORMAT_MESSAGE_IGNORE_INSERTS = 0x00000200;
         private const uint FORMAT_MESSAGE_FROM_SYSTEM = 0x00001000;
-        }
+    }
 
 }
 
