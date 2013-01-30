@@ -14,7 +14,8 @@
     {
         if ([String]::IsNullOrEmpty($Path))
         {
-            $Path = Join-Path ([Environment]::CurrentDirectory) "$($Process.ID).dmp"
+            $MS = [DateTime]::Now.Millisecond
+            $Path = Join-Path ([Environment]::CurrentDirectory) "$($Process.ID)_$MS.dmp"
         }
 
         if ($Full)
