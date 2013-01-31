@@ -18,7 +18,7 @@
             $flags = $flags -bor [PoshInternals.MoveFileFlags]::MOVEFILE_REPLACE_EXISTING
         }
 
-        if ([PoshInternals.NativeMethods]::MoveFileEx($Path, $Destination,  $flags) -eq 0)
+        if ([PoshInternals.Kernel32]::MoveFileEx($Path, $Destination,  $flags) -eq 0)
         {
             throw New-Object System.Win32Exception
         }
@@ -38,7 +38,7 @@ function Remove-FileOnReboot
     Begin {    
         $Flags = [PoshInternals.MoveFileFlags]::MOVEFILE_DELAY_UNTIL_REBOOT
 
-        if ([PoshInternals.NativeMethods]::MoveFileEx($Path, $null, $Flags) -eq 0)
+        if ([PoshInternals.Kernel32]::MoveFileEx($Path, $null, $Flags) -eq 0)
         {
             throw New-Object System.Win32Exception
         }
