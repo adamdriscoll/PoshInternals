@@ -185,6 +185,14 @@ namespace PoshInternals {
         public int GrantedAccess;
     }
 
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    public struct TokPriv1Luid
+    {
+        public int Count;
+        public long Luid;
+        public int Attr;
+    }
+
     [StructLayout(LayoutKind.Sequential)]
     internal struct WINTRUST_DATA : IDisposable
     {
@@ -282,6 +290,19 @@ namespace PoshInternals {
 
     //------------Native Methods
 
+    public static class Advapi32
+    {
+        [DllImport("advapi32.dll", ExactSpelling = true, SetLastError = true)]
+        public static extern bool AdjustTokenPrivileges(IntPtr htok, bool disall,
+            ref TokPriv1Luid newst, int len, IntPtr prev, IntPtr relen);
+  
+        [DllImport("advapi32.dll", ExactSpelling = true, SetLastError = true)]
+        public static extern bool OpenProcessToken(IntPtr h, int acc, ref IntPtr phtok);
+
+        [DllImport("advapi32.dll", SetLastError = true)]
+        public static extern bool LookupPrivilegeValue(string host, string name, ref long pluid);
+    }
+
     public static class Kernel32
     {
         [DllImport("Kernel32.dll", SetLastError = true)]
@@ -324,6 +345,14 @@ namespace PoshInternals {
         [DllImport("kernel32.dll")]
         public static extern IntPtr GetCurrentProcess();
 
+        [System.Runtime.InteropServices.DllImportAttribute("kernel32.dll", SetLastError=true)]
+        [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
+        public static extern bool GetSystemFileCacheSize(
+            ref uint lpMinimumFileCacheSize,
+            ref uint lpMaximumFileCacheSize,
+            ref int lpFlags
+            );
+
         [DllImport("kernel32.dll", SetLastError=true, CharSet=CharSet.Unicode)]
         public static extern bool MoveFileEx(string lpExistingFileName, string lpNewFileName,
            MoveFileFlags dwFlags);    
@@ -337,6 +366,14 @@ namespace PoshInternals {
         [DllImport("Kernel32.dll", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
         public static extern bool ReleaseActCtx(IntPtr hActCtx);
+
+        [System.Runtime.InteropServices.DllImportAttribute("kernel32.dll", SetLastError=true)]
+        [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
+        public static extern bool SetSystemFileCacheSize(
+            uint lpMinimumFileCacheSize,
+            uint lpMaximumFileCacheSize,
+            int lpFlags
+            );
 
         [DllImport("kernel32.dll", SetLastError = true)]
         public static extern uint QueryDosDevice(string lpDeviceName, StringBuilder lpTargetPath, int ucchMax);
@@ -376,8 +413,6 @@ namespace PoshInternals {
 
     public static class Constants
     {
-        public const int MAX_PATH = 260;
-
         public const uint ACTCTX_FLAG_PROCESSOR_ARCHITECTURE_VALID = 0x001;
         public const uint ACTCTX_FLAG_LANGID_VALID = 0x002;
         public const uint ACTCTX_FLAG_ASSEMBLY_DIRECTORY_VALID = 0x004;
@@ -385,6 +420,11 @@ namespace PoshInternals {
         public const uint ACTCTX_FLAG_SET_PROCESS_DEFAULT = 0x010;
         public const uint ACTCTX_FLAG_APPLICATION_NAME_VALID = 0x020;
         public const uint ACTCTX_FLAG_HMODULE_VALID = 0x080;
+
+        public const int FILE_CACHE_MAX_HARD_ENABLE = 1;
+        public const int FILE_CACHE_MIN_HARD_ENABLE = 4;
+
+        public const int MAX_PATH = 260;
 
         public const UInt16 RT_MANIFEST = 24;
         public const UInt16 CREATEPROCESS_MANIFEST_RESOURCE_ID = 1;
@@ -394,6 +434,11 @@ namespace PoshInternals {
         public const uint FORMAT_MESSAGE_ALLOCATE_BUFFER = 0x00000100;
         public const uint FORMAT_MESSAGE_IGNORE_INSERTS = 0x00000200;
         public const uint FORMAT_MESSAGE_FROM_SYSTEM = 0x00001000;
+
+        public const int SE_PRIVILEGE_ENABLED = 0x00000002;
+        public const int SE_PRIVILEGE_DISABLED = 0x00000000;
+        public const int TOKEN_QUERY = 0x00000008;
+        public const int TOKEN_ADJUST_PRIVILEGES = 0x00000020;
     }
 
     //------------Helper Classes
@@ -427,6 +472,35 @@ namespace PoshInternals {
         {
             Kernel32.DeactivateActCtx(0, cookie);
             Kernel32.ReleaseActCtx(hActCtx);
+        }
+    }
+
+    public class AdjustPrivilege
+    {
+        public static bool EnablePrivilege(long processHandle, string privilege, bool disable)
+        {
+            bool retVal;
+            TokPriv1Luid tp;
+            IntPtr hproc = new IntPtr(processHandle);
+            IntPtr htok = IntPtr.Zero;
+
+            retVal = Advapi32.OpenProcessToken(hproc, Constants.TOKEN_ADJUST_PRIVILEGES | Constants.TOKEN_QUERY, ref htok);
+            tp.Count = 1;
+            tp.Luid = 0;
+
+            if(disable)
+            {
+                tp.Attr = Constants.SE_PRIVILEGE_DISABLED;
+            }
+            else
+            {
+                tp.Attr = Constants.SE_PRIVILEGE_ENABLED;
+            }
+
+            retVal = Advapi32.LookupPrivilegeValue(null, privilege, ref tp.Luid);
+            retVal = Advapi32.AdjustTokenPrivileges(htok, false, ref tp, 0, IntPtr.Zero, IntPtr.Zero);
+
+            return retVal;
         }
     }
 
@@ -683,6 +757,53 @@ namespace PoshInternals {
             }
 
             return handleInfos;
+        }
+    }
+
+    public class SystemCache
+    {
+        public static uint GetMinFileCacheSize()
+        {
+            uint min = 0, max = 0;
+            int flags = 0;
+            if (!Kernel32.GetSystemFileCacheSize(ref min, ref max, ref flags))
+            {
+                throw new System.ComponentModel.Win32Exception();
+            }
+
+            return min;
+        }
+
+        public static uint GetMaxFileCacheSize()
+        {
+            uint min = 0, max = 0;
+            int flags = 0;
+            if (!Kernel32.GetSystemFileCacheSize(ref min, ref max, ref flags))
+            {
+                throw new System.ComponentModel.Win32Exception();
+            }
+
+            return max;
+        }
+
+        public static int GetFlags()
+        {
+            uint min = 0, max = 0;
+            int flags = 0;
+            if (!Kernel32.GetSystemFileCacheSize(ref min, ref max, ref flags))
+            {
+                throw new System.ComponentModel.Win32Exception();
+            }
+
+            return flags;
+        }
+
+        public static void SetCacheFileSize(uint min, uint max, int flags)
+        {
+            if (!Kernel32.SetSystemFileCacheSize(min, max, flags))
+            {
+                throw new System.ComponentModel.Win32Exception();
+            }
         }
     }
 
