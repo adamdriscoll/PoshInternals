@@ -1,6 +1,6 @@
 ﻿function Get-Handle
 {
-    [CmdletBinding(DefaultParameterSetName="AllProcesses")]
+    [CmdletBinding()]
     param(
     [Parameter(ValueFromPipeline=$true)]
     [System.Diagnostics.Process]$Process,
@@ -16,5 +16,20 @@
         {
             [PoshInternals.HandleUtil]::GetHandles() |  Where-Object { $_.Name -like $Name} 
         }
+    }
+}
+
+function Close-Handle
+{
+    [CmdletBinding(SupportsShouldProcess=$true,ConfirmImpact='High')]
+    param(
+    [Parameter(ValueFromPipeline=$true)]
+    $Handle
+    )
+
+    Process
+    {
+        $PSCmdlet.ShouldProcess($Handle.Name,"Closing a handle can cause system instability. Close handle?")
+        $Handle.Close()
     }
 }

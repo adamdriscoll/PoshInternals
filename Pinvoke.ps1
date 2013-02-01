@@ -494,6 +494,11 @@ namespace PoshInternals {
         public string TypeString { get { if (_typeStr == null) initType(); return _typeStr; } }
         public HandleType Type { get { if (_typeStr == null) initType(); return _type; } }
 
+        public void Close()
+        {
+            Kernel32.CloseHandle(new IntPtr(Handle));
+        }
+
         private void initType()
         {
             if (_rawTypeMap.ContainsKey(RawType))
