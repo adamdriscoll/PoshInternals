@@ -29,7 +29,9 @@ function Close-Handle
 
     Process
     {
-        $PSCmdlet.ShouldProcess($Handle.Name,"Closing a handle can cause system instability. Close handle?")
-        $Handle.Close()
+        if ($PSCmdlet.ShouldProcess($Handle.Name,"Closing a handle can cause system instability. Close handle?"))
+        {
+            $Handle.Close()
+        }
     }
 }
