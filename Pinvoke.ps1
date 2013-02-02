@@ -377,6 +377,13 @@ namespace PoshInternals {
 
         [DllImport("kernel32.dll", SetLastError = true)]
         public static extern uint QueryDosDevice(string lpDeviceName, StringBuilder lpTargetPath, int ucchMax);
+        
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern bool SetProcessWorkingSetSize( 
+            IntPtr proc, 
+            int min, 
+            int max 
+            );
     }
 
     public static class DbgHelp
