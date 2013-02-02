@@ -4,4 +4,3 @@
             [System.IO.Directory]::GetFiles("\\.\\pipe\\")
         }
 }
-PipeList
