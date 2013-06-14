@@ -1,4 +1,16 @@
-﻿function Install-BlueScreenSaver
+﻿<#
+.Synopsis
+   Installs a blue screen screensaver that mimics the Windows 8 system fault blue screen. 
+.DESCRIPTION
+   Installs a blue screen screensaver that mimics the Windows 8 system fault blue screen. This cmdlet 
+   compiles a custom C# PowerShell SCR file to the system directory that can be used to host any PowerShell
+   script. The PowerShell script is responsible for displaying the screen saver.
+
+   You must run this cmdlet from an elevated PowerShell host.
+.EXAMPLE
+   Install-BlueScreenSaver
+#>
+function Install-BlueScreenSaver
 {
     $CSharp = 
     '
@@ -32,6 +44,18 @@
 
     Rename-Item "bluescreen.exe" "bluescreen.scr"
 
-    Move-Item "bluescreen.scr" "C:\windows\syswow64\bluescreen.scr"
-    Move-Item "ScreenSaver.ps1" "C:\windows\syswow64\ScreenSaver.ps1"
+    $System32 = Join-Path $env:SystemRoot "System32"
+
+    Copy-Item "bluescreen.scr" (Join-Path $System32 "bluescreen.scr")
+    Copy-Item "ScreenSaver.ps1" (Join-Path $System32 "ScreenSaver.ps1")
+
+    if ($env:PROCESSOR_ARCHITECTURE -eq "AMD64")
+    {
+        $System32 = Join-Path $env:SystemRoot "SysWow64"
+
+        Copy-Item "bluescreen.scr" (Join-Path $System32 "bluescreen.scr")
+        Copy-Item "ScreenSaver.ps1" (Join-Path $System32 "ScreenSaver.ps1")
+    }
+
+    Remove-Item "bluescreen.scr"
 }
