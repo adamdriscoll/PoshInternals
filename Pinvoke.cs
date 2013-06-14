@@ -392,6 +392,12 @@ namespace PoshInternals
             int min,
             int max
             );
+
+        [DllImport("kernel32.dll")]
+        private static extern int GetThreadId(IntPtr thread);
+
+        [DllImport("kernel32.dll")]
+        private static extern int GetProcessId(IntPtr process);
     }
 
     public static class DbgHelp
@@ -416,6 +422,46 @@ namespace PoshInternals
             [In] IntPtr SystemInformation,
             [In] int SystemInformationLength,
             [Out] out int ReturnLength);
+    }
+
+
+    public static class User32
+    {
+        public delegate bool EnumDesktopProc(string lpszDesktop, IntPtr lParam);
+        public delegate bool EnumDesktopWindowsProc(IntPtr desktopHandle, IntPtr lParam);
+
+        [DllImport("user32.dll")]
+        public static extern IntPtr CreateDesktop(string lpszDesktop, IntPtr lpszDevice, IntPtr pDevmode, int dwFlags, long dwDesiredAccess, IntPtr lpsa);
+
+        [DllImport("user32.dll")]
+        public static extern bool CloseDesktop(IntPtr hDesktop);
+
+        [DllImport("user32.dll")]
+        public static extern IntPtr OpenDesktop(string lpszDesktop, int dwFlags, bool fInherit, long dwDesiredAccess);
+
+        [DllImport("user32.dll")]
+        public static extern IntPtr OpenInputDesktop(int dwFlags, bool fInherit, long dwDesiredAccess);
+
+        [DllImport("user32.dll")]
+        public static extern bool SwitchDesktop(IntPtr hDesktop);
+
+        [DllImport("user32.dll")]
+        public static extern bool EnumDesktops(IntPtr hwinsta, EnumDesktopProc lpEnumFunc, IntPtr lParam);
+
+        [DllImport("user32.dll")]
+        public static extern IntPtr GetProcessWindowStation();
+
+        [DllImport("user32.dll")]
+        public static extern bool EnumDesktopWindows(IntPtr hDesktop, EnumDesktopWindowsProc lpfn, IntPtr lParam);
+
+        [DllImport("user32.dll")]
+        public static extern bool SetThreadDesktop(IntPtr hDesktop);
+
+        [DllImport("user32.dll")]
+        public static extern IntPtr GetThreadDesktop(int dwThreadId);
+
+        [DllImport("user32.dll")]
+        public static extern bool GetUserObjectInformation(IntPtr hObj, int nIndex, IntPtr pvInfo, int nLength, ref int lpnLengthNeeded);
     }
 
     public static class WinTrust
@@ -454,6 +500,16 @@ namespace PoshInternals
         public const int SE_PRIVILEGE_DISABLED = 0x00000000;
         public const int TOKEN_QUERY = 0x00000008;
         public const int TOKEN_ADJUST_PRIVILEGES = 0x00000020;
+
+        private const long DESKTOP_CREATEWINDOW = 0x0002L;
+        private const long DESKTOP_ENUMERATE = 0x0040L;
+        private const long DESKTOP_WRITEOBJECTS = 0x0080L;
+        private const long DESKTOP_SWITCHDESKTOP = 0x0100L;
+        private const long DESKTOP_CREATEMENU = 0x0004L;
+        private const long DESKTOP_HOOKCONTROL = 0x0008L;
+        private const long DESKTOP_READOBJECTS = 0x0001L;
+        private const long DESKTOP_JOURNALRECORD = 0x0010L;
+        private const long DESKTOP_JOURNALPLAYBACK = 0x0020L;
     }
 
     //------------Helper Classes
