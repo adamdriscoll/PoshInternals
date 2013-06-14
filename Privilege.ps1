@@ -1,4 +1,14 @@
-﻿function Set-Privilege
+﻿<#
+.Synopsis
+    Enables or disables a privilege for the current process token.
+.DESCRIPTION
+   Enables or disables a privilege for the current process token.
+.EXAMPLE
+   Set-Privilege -Privilege SeDebugPrivilege 
+.EXAMPLE
+   Set-Privilege -Privilege SeAuditPrivilege -Disable
+#>
+function Set-Privilege
 {
     param(
         ## The privilege to adjust. This set is taken from

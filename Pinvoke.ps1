@@ -17,6 +17,14 @@ namespace PoshInternals {
         CoTaskMem
     }
 
+    public enum FileSystemCacheFlags
+    {
+        FILE_CACHE_MAX_HARD_DISABLE = 0x2,
+        FILE_CACHE_MAX_HARD_ENABLE = 0x1,
+        FILE_CACHE_MIN_HARD_DISABLE = 0x8,
+        FILE_CACHE_MIN_HARD_ENABLE = 0x4
+    }
+
     public enum HandleType
     {
         Unknown,
