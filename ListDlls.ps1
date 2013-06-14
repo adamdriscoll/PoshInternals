@@ -1,13 +1,30 @@
-﻿function Get-Dll
+﻿<#
+.Synopsis
+    Gets the DLLs loaded by processes on the system.
+.DESCRIPTION
+   Gets the DLLs loaded by processes on the system.
+.EXAMPLE
+   Get-Dll -ProcessName Notepad
+.EXAMPLE
+   Get-Dll -ModuleName mydll.dll
+#>
+function Get-Dll
 {
     [CmdletBinding()]
     param(
-    [Parameter(ValueFromPipeline=$true)]
+    # The process to get the DLLs of 
+    [Parameter(ValueFromPipeline=$true, ParameterSetName="Process")]
+    [System.Diagnostics.Process]$Process,
+    # The process name to get the DLLs of
+    [Parameter(ValueFromPipeline=$true, ParameterSetName="ProcessName")]
     [String]$ProcessName = "",
-    [Parameter(ValueFromPipeline=$true)]
+    # The process ID to get the DLLs of
+    [Parameter(ValueFromPipeline=$true, ParameterSetName="ProcessId")]
     [Int]$ProcessId = 0,
+    # The module name to search for
     [Parameter()]
     [String]$ModuleName,
+    # Whether to returned only unsigned modules
     [Parameter()]
     [Switch]$Unsigned
     )
@@ -18,7 +35,11 @@
     }
 
     Process {
-        if (-not [String]::IsNullOrEmpty($ProcessName))
+        if ($Process -ne $null)
+        {
+            $Modules += $Process.Modules 
+        }
+        elseif (-not [String]::IsNullOrEmpty($ProcessName))
         {
             $Modules += Get-Process -Name $ProcessName | Select-Object -ExpandProperty Modules 
         }
