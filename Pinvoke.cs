@@ -501,15 +501,16 @@ namespace PoshInternals
         public const int TOKEN_QUERY = 0x00000008;
         public const int TOKEN_ADJUST_PRIVILEGES = 0x00000020;
 
-        private const long DESKTOP_CREATEWINDOW = 0x0002L;
-        private const long DESKTOP_ENUMERATE = 0x0040L;
-        private const long DESKTOP_WRITEOBJECTS = 0x0080L;
-        private const long DESKTOP_SWITCHDESKTOP = 0x0100L;
-        private const long DESKTOP_CREATEMENU = 0x0004L;
-        private const long DESKTOP_HOOKCONTROL = 0x0008L;
-        private const long DESKTOP_READOBJECTS = 0x0001L;
-        private const long DESKTOP_JOURNALRECORD = 0x0010L;
-        private const long DESKTOP_JOURNALPLAYBACK = 0x0020L;
+        public const long DESKTOP_CREATEWINDOW = 0x0002L;
+        public const long DESKTOP_ENUMERATE = 0x0040L;
+        public const long DESKTOP_WRITEOBJECTS = 0x0080L;
+        public const long DESKTOP_SWITCHDESKTOP = 0x0100L;
+        public const long DESKTOP_CREATEMENU = 0x0004L;
+        public const long DESKTOP_HOOKCONTROL = 0x0008L;
+        public const long DESKTOP_READOBJECTS = 0x0001L;
+        public const long DESKTOP_JOURNALRECORD = 0x0010L;
+        public const long DESKTOP_JOURNALPLAYBACK = 0x0020L;
+        //public const long AccessRights = DESKTOP_JOURNALRECORD | DESKTOP_JOURNALPLAYBACK | DESKTOP_CREATEWINDOW | DESKTOP_ENUMERATE | DESKTOP_WRITEOBJECTS | DESKTOP_SWITCHDESKTOP | DESKTOP_CREATEMENU | DESKTOP_HOOKCONTROL | DESKTOP_READOBJECTS;
     }
 
     //------------Helper Classes
