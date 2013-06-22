@@ -12,6 +12,7 @@ function Get-Desktop
 {
     param(
     # The name of the desktop to return
+    [Parameter(Position=0)]
     [String]$Name = "*"
     )
     $windowStation = [PoshInternals.User32]::GetProcessWindowStation()
@@ -27,10 +28,8 @@ function Get-Desktop
         return
     }
 
-    $AccessRights = [PoshInternals.Constants]::DESKTOP_JOURNALRECORD -bor [PoshInternals.Constants]::DESKTOP_JOURNALPLAYBACK -bor [PoshInternals.Constants]::DESKTOP_CREATEWINDOW -bor [PoshInternals.Constants]::DESKTOP_ENUMERATE -bor [PoshInternals.Constants]::DESKTOP_WRITEOBJECTS -bor [PoshInternals.Constants]::DESKTOP_SWITCHDESKTOP -bor [PoshInternals.Constants]::DESKTOP_CREATEMENU -bor [PoshInternals.Constants]::DESKTOP_HOOKCONTROL -bor [PoshInternals.Constants]::DESKTOP_READOBJECTS
-
-    $desktops | Where Name -Like $Name | ForEach-Object {
-        $Handle = [PoshInternals.User32]::OpenDesktop($_, 0, $true, $AccessRights)
+    $desktops | Where { $_ -Like $Name } | ForEach-Object {
+        $Handle = [PoshInternals.User32]::OpenDesktop($_, 0, $true, [PoshInternals.ACCESS_MASK]::DESKTOP_ALL)
 
         [PSCustomObject]@{ Handle=$Handle;Name=$_}
     }
@@ -48,31 +47,47 @@ function New-Desktop
 {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory)]
-        [String]$Name
+        [Parameter(Mandatory, Position=0)]
+        [String]$Name,
+        [Switch]$NoExplorer
     )
 
-    $AccessRights = [PoshInternals.Constants]::DESKTOP_JOURNALRECORD -bor [PoshInternals.Constants]::DESKTOP_JOURNALPLAYBACK -bor [PoshInternals.Constants]::DESKTOP_CREATEWINDOW -bor [PoshInternals.Constants]::DESKTOP_ENUMERATE -bor [PoshInternals.Constants]::DESKTOP_WRITEOBJECTS -bor [PoshInternals.Constants]::DESKTOP_SWITCHDESKTOP -bor [PoshInternals.Constants]::DESKTOP_CREATEMENU -bor [PoshInternals.Constants]::DESKTOP_HOOKCONTROL -bor [PoshInternals.Constants]::DESKTOP_READOBJECTS
-    $DesktopHandle = [PoshInternals.User32]::CreateDesktop($Name, [IntPtr]::Zero, [IntPtr]::Zero, 0, $AccessRights, [IntPtr]::Zero)
+    $DesktopHandle = [PoshInternals.User32]::CreateDesktop($Name, [IntPtr]::Zero, [IntPtr]::Zero, 0, [PoshInternals.ACCESS_MASK]::DESKTOP_ALL, [IntPtr]::Zero)
 
     if ($DesktopHandle -eq [IntPtr]::Zero)
     {
-        Write-Error "Failed to create desktop!"
+        $ex = New-Object System.ComponentModel.Win32Exception
+
+        Write-Error "Failed to create desktop! $($ex.Message)"
     }
     else
     {
+        if (-not $NoExplorer)
+        {
+            Start-Process explorer.exe -Desktop $Name
+        }
+
         $Desktop = [PSCustomObject]@{ Handle=$DesktopHandle;Name=$Name}
         $Desktop | Add-Member -MemberType ScriptMethod -Name Close -Value { [PoshInternals.User32]::CloseDesktop($this) } -PassThru
     }
 }
-
+<#
+.Synopsis
+   Shows the specified desktop.
+.DESCRIPTION
+   This cmdlet will change the current input desktop to the one specified. If the NoExplorer switch was specified
+   on New-Desktop, then there will be nothing running in the newly created desktop. Use Start-Process with the 
+   Desktop parameter, before changing desktops, to start a proces in the target desktop.
+.EXAMPLE
+   Show-Desktop -Name Desktop2
+#>
 function Show-Desktop
 {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory, ValueFromPipeLine=$true, ParameterSetName="Desktop")]
         [PSObject]$Desktop,
-        [Parameter(Mandatory, ValueFromPipeLine=$true, ParameterSetName="Name")]
+        [Parameter(Mandatory, ValueFromPipeLine=$true, ParameterSetName="Name", Position=0)]
         [string]$Name
     )
 
@@ -169,22 +184,26 @@ function Start-Process
         [switch]
         ${UseNewEnvironment},
         
+        [Parameter(ParameterSetName='AltDesktop')]
         [string]
         ${Desktop})
 
     begin
     {
         try {
-            $outBuffer = $null
-            if ($PSBoundParameters.TryGetValue('OutBuffer', [ref]$outBuffer))
+            if (-not $PSBoundParameters['Desktop'])
             {
-                $PSBoundParameters['OutBuffer'] = 1
-            }
-            $wrappedCmd = $ExecutionContext.InvokeCommand.GetCommand('Start-Process', [System.Management.Automation.CommandTypes]::Cmdlet)
+                $outBuffer = $null
+                if ($PSBoundParameters.TryGetValue('OutBuffer', [ref]$outBuffer))
+                {
+                    $PSBoundParameters['OutBuffer'] = 1
+                }
+                $wrappedCmd = $ExecutionContext.InvokeCommand.GetCommand('Start-Process', [System.Management.Automation.CommandTypes]::Cmdlet)
 
-            $scriptCmd = {& $wrappedCmd @PSBoundParameters }
-            $steppablePipeline = $scriptCmd.GetSteppablePipeline($myInvocation.CommandOrigin)
-            $steppablePipeline.Begin($PSCmdlet)
+                $scriptCmd = {& $wrappedCmd @PSBoundParameters }
+                $steppablePipeline = $scriptCmd.GetSteppablePipeline($myInvocation.CommandOrigin)
+                $steppablePipeline.Begin($PSCmdlet)
+            }
         } catch {
             throw
         }
@@ -195,19 +214,15 @@ function Start-Process
         try {
             if ($PSBoundParameters['Desktop'])
             {
-                $pInfo = new-object PoshInternals.PROCESS_INFORMATION
-                $sInfo = new-object PoshInternals.STARTUPINFO
-                $pSec = new-object PoshInternals.SECURITY_ATTRIBUTES
-                $tSec = new-object PoshInternals.SECURITY_ATTRIBUTES
-
-                $sInfo.lpDesktop = $Desktop
-
-                $pSec.nLength = [System.InteropServices.Marshal]::SizeOf($pSec)
-                $tSec.nLength = [System.InteropServices.Marshal]::($tSec)
-
-                if (-not [PoshInternals.Kernel32]::CreateDesktop($FilePath, $ArgumentList, [ref] $pSec, [ref] $tSec, 0,  [IntPtr]::Zero, $WorkingDirectory, $sInfo, [ref]$pInfo))
+                $Process = [PoshInternals.CreateProcessHelper]::CreateProcess($FilePath, $Desktop)
+                if ($PassThru)
                 {
-                    throw (New-Object System.ComponentModel.Win32Exception)
+                    $Process
+                }
+
+                if ($Wait)
+                {
+                    $Process.WaitForExit()
                 }
             }
             else
@@ -221,10 +236,13 @@ function Start-Process
 
     end
     {
-        try {
-            $steppablePipeline.End()
-        } catch {
-            throw
+        if (-not $PSBoundParameters['Desktop'])
+        {
+            try {
+                $steppablePipeline.End()
+            } catch {
+                throw
+            }
         }
     }
     <#
