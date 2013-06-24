@@ -214,7 +214,9 @@ function Start-Process
         try {
             if ($PSBoundParameters['Desktop'])
             {
-                $Process = [PoshInternals.CreateProcessHelper]::CreateProcess($FilePath, $Desktop)
+                $CommandLine = "$FilePath $ArgumentList"
+
+                $Process = [PoshInternals.CreateProcessHelper]::CreateProcess($CommandLine, $Desktop)
                 if ($PassThru)
                 {
                     $Process
