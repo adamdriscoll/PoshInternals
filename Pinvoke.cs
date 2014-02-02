@@ -583,7 +583,7 @@ namespace PoshInternals
 
 #endregion //------------End Native Methods
 
-    #region Constants
+#region Constants
     public static class Constants
     {
         public const uint ACTCTX_FLAG_PROCESSOR_ARCHITECTURE_VALID = 0x001;
@@ -616,6 +616,7 @@ namespace PoshInternals
         public const int NORMAL_PRIORITY_CLASS = 0x00000020;
     }
     #endregion
+
 #region Helper Classes
 
     public class ActivationContext
