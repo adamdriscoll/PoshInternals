@@ -40,6 +40,7 @@
     <Compile Include="Pinvoke.cs" />
     <Compile Include="Pinvoke.ps1" />
     <Compile Include="PipeList.ps1" />
+    <Compile Include="PoshExec.cs" />
     <Compile Include="PoshExec.ps1" />
     <Compile Include="PoshInternals.psd1" />
     <Compile Include="Privilege.ps1" />

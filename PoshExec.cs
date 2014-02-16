@@ -83,7 +83,6 @@ namespace PoshExecSvr
                 while (!_stopping)
                 {
                     stream.WaitForConnection();
-
                     byte[] bRequest = new byte[1024];
                     do
                     {
@@ -97,6 +96,15 @@ namespace PoshExecSvr
                     XmlSerializer serializer = new XmlSerializer(typeof(StartInfo));
                     var startInfo = (StartInfo)serializer.Deserialize(new MemoryStream(bRequest));
 
+                    try
+                    {
+                        System.Diagnostics.Process.Start(startInfo.CommandLine);
+                    }
+                    catch (Exception ex)
+                    {
+                        File.WriteAllText("C:\\log.txt", ex.Message);
+                    }
+ 
                     stream.RunAsClient(() =>
                         {
                             PROCESS_INFORMATION procInfo;
@@ -115,7 +123,7 @@ namespace PoshExecSvr
 
                             if (!CreateProcessAsUser(handle, null, startInfo.CommandLine, IntPtr.Zero, IntPtr.Zero, false, 0, IntPtr.Zero, null, ref startupInfo, out procInfo))
                             {
-                                File.WriteAllText("C:\\log.txt", String.Format("{0}", Marshal.GetLastWin32Error()));
+                                File.WriteAllText("C:\\users\\adriscoll\\desktop\\log.txt", String.Format("{0}", Marshal.GetLastWin32Error()));
                             }
                         });
 
