@@ -14,14 +14,20 @@
 		$File.Close()
 		$File.Dispose()
 
-		Start-Sleep 1
+		sleep 1
 
-		Remove-Item $TempFile
+		remove-item $TempFile
 
 		$Handle | Should not be $null
 	}
 
-	TestCase "Finds File" {
-		Get-Handle | Where Type -EQ "File" 
+	TestCase "HandleUtil.GetHandles" {
+		Measure-Command {  [PoshInternals.HandleUtil]::GetHandles() | Select Name,Type }
 	}
+
+	TestCase "Finds File" {
+		Measure-Command { Get-Handle }
+	}
+
+
 }

@@ -25,22 +25,24 @@ function Get-Handle
     )
 
 	Begin {
-		$Handles = Get-AllHandles
+		#$Handles =
 	}
 
     Process {
-        if ($Process -ne $Null)
-        {
-            $Handles | Where-Object { $_.ProcessId -eq $Process.Id -and $_.Name -match $Name} 
-        }
-        elseif ($Name -ne $null)
-        {
-            $Handles |  Where-Object { $_.Name -like $Name} 
-        }
-        else
-        {
-            $Handles
-        }
+	 Get-AllHandles
+
+        #if ($Process -ne $Null)
+        #{
+        #    $Handles | Where-Object { $_.ProcessId -eq $Process.Id -and $_.Name -match $Name} 
+        #}
+        #elseif ($Name -ne $null)
+        #{
+        #    $Handles |  Where-Object { $_.Name -like $Name} 
+        #}
+        #else
+        #{
+        #    $Handles
+        #}
     }
 }
 
@@ -135,27 +137,35 @@ function ConvertTo-HandleHashTable
 	[CmdletBinding()]
 	param(
 		[Parameter(Mandatory, ValueFromPipeline=$true)]
-		[PoshInternals.SystemHandleEntry]$HandleEntry,
+		$HandleEntry,
 		[Parameter(Mandatory)]
 		[IntPtr]$ProcessHandle
 	)
 
-	Process {
-			if ($HandleEntry.GrantedAccess -eq 0x0012019f -or $HandleEntry.GrantedAccess -eq 0x00120189 -or $HandleEntry.GrantedAccess -eq 0x120089)
-			{
-				return
-			}
+	Process
+	{
+		if ($HandleEntry.GrantedAccess -eq 0x0012019f -or $HandleEntry.GrantedAccess -eq 0x00120189 -or $HandleEntry.GrantedAccess -eq 0x120089)
+		{
+			return
+		}
 
-			$HandleType = Find-HandleType -HandleEntry $HandleEntry -ProcessHandle $ProcessHandle
+		$HandleType = Find-HandleType -HandleEntry $HandleEntry -ProcessHandle $ProcessHandle
 
-			$length = 0
-			[PoshInternals.NtDll]::NtQueryObject($ProcessHandle, 'ObjectNameInformation', [IntPtr]::Zero, 0, [ref]$length) | Out-Null
-			$ptr = [IntPtr]::Zero
+		$length = 0
+		$Result = [PoshInternals.NtDll]::NtQueryObject($ProcessHandle, 'ObjectNameInformation', [IntPtr]::Zero, 0, [ref]$length) 
+		$ptr = [IntPtr]::Zero
 
+		if ($Result -ne [PoshInternals.NT_STATUS]::STATUS_INFO_LENGTH_MISMATCH)
+		{
+			return
+		}
+
+		try 
+		{
 			$ptr = [Runtime.InteropServices.Marshal]::AllocHGlobal($length)
 			if ([PoshInternals.NtDll]::NtQueryObject($ProcessHandle, 'ObjectNameInformation', $ptr, $length, [ref]$length) -ne [PoshInternals.NT_STATUS]::STATUS_SUCCESS)
 			{
-				return;
+				return
 			}
 
 			$Path = [Runtime.InteropServices.Marshal]::PtrToStringUni([IntPtr]([long]$ptr+ 2 * [IntPtr]::Size))
@@ -165,14 +175,23 @@ function ConvertTo-HandleHashTable
 				$Path = ConvertTo-RegularFileName $Path
 			}
 
-			[PSCustomObject]@{
+			$PsObject = [PSCustomObject]@{
 				Type=$HandleType;
 				Path=$Path;
 				Process=$HandleEntry.OwnerProcessId;
 			}
-
+			
+			return $PsObject
+		}
+		catch 
+		{
+			Write-Warning $_.Exception.Message
+		}
+		finally 
+		{
 			[Runtime.InteropServices.Marshal]::FreeHGlobal($ptr)
 		}
+	}
 }
 
 $HandleTypeCache = @{}
@@ -180,7 +199,7 @@ $HandleTypeCache = @{}
 function Find-HandleType {
 	param( 
 	    [Parameter(Mandatory)]
-		[PoshInternals.SystemHandleEntry]$HandleEntry,
+		$HandleEntry,
 		[Parameter(Mandatory)]
 		[IntPtr]$ProcessHandle)
 
@@ -190,25 +209,34 @@ function Find-HandleType {
 	}
 
 	$length = 0
-    [PoshInternals.NtDll]::NtQueryObject($ProcessHandle, 'ObjectTypeInformation', [IntPtr]::Zero, 0, [ref] $length)
+    $Result = [PoshInternals.NtDll]::NtQueryObject($ProcessHandle, 'ObjectTypeInformation', [IntPtr]::Zero, 0, [ref] $length)
     $ptr = [IntPtr]::Zero
+
+	if ($Result -ne [PoshInternals.NT_STATUS]::STATUS_INFO_LENGTH_MISMATCH)
+	{
+		return
+	}
+
     try
     {
         $ptr = [Runtime.InteropServices.Marshal]::AllocHGlobal($length)
         if ([PoshInternals.NtDll]::NtQueryObject($ProcessHandle, 'ObjectTypeInformation', $ptr, $length, [ref] $length) -ne [PoshInternals.NT_STATUS]::STATUS_SUCCESS)
 		{
-			return;
+			return
 		}
              
-        $typeStr = [Runtime.InteropServices.Marshal]::PtrToStringUni([IntPtr]([long]$ptr + 0x58 + 2 * [IntPtr]::Size));
+        $typeStr = [Runtime.InteropServices.Marshal]::PtrToStringUni([IntPtr]([long]$ptr + 0x58 + 2 * [IntPtr]::Size))
         $HandleTypeCache[$HandleEntry.ObjectTypeNumber] = $typeStr 
 
 		$typeStr
-
     }
+	catch
+	{
+		Write-Warning $_.Exception.Message
+	}
     finally
     {
-        [Runtime.InteropServices.Marshal]::FreeHGlobal($ptr);
+        [Runtime.InteropServices.Marshal]::FreeHGlobal($ptr)
     }
 }
 
@@ -237,7 +265,7 @@ function Get-AllHandles
         {
             $ptr = [Runtime.InteropServices.Marshal]::AllocHGlobal($length)
             $wantedLength = 0
-			[SYSTEM_INFORMATION_CLASS]$HandleInfo = 'SystemHandleInformation'
+			[PoshInternals.SYSTEM_INFORMATION_CLASS]$HandleInfo = 'SystemHandleInformation'
             $result = [PoshInternals.NtDll]::NtQuerySystemInformation($HandleInfo, $ptr, $length, [ref] $wantedLength)
             if ($result -eq [PoshInternals.NT_STATUS]::STATUS_INFO_LENGTH_MISMATCH)
             {
@@ -264,34 +292,57 @@ function Get-AllHandles
 			$handleCount = [Runtime.InteropServices.Marshal]::ReadInt64($ptr)
 		}
 
-		$offset = [IntPtr]::Size
 		$She = New-Object -TypeName PoshInternals.SystemHandleEntry
         $size = [Runtime.InteropServices.Marshal]::SizeOf($She)
 
 		$CurrentProcessHandle = (Get-Process -Id $Pid).Handle
 
+		$ClassName = "StructArray$(Get-Random -Minimum 1 -Maximum 10000)"
+		$StructName = "Struct$(Get-Random -Minimum 1 -Maximum 10000)"
+
+		Add-Type -TypeDefinition "
+			using System.Runtime.InteropServices;
+
+			[StructLayout(LayoutKind.Sequential)]
+			public struct $StructName
+			{
+				public int OwnerProcessId;
+				public byte ObjectTypeNumber;
+				public byte Flags;
+				public ushort Handle;
+				public System.IntPtr Object;
+				public int GrantedAccess;
+			}
+
+			[StructLayout(LayoutKind.Sequential)]
+			public struct $ClassName
+			{
+				[MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = $HandleCount, ArraySubType = UnmanagedType.Struct)]
+				public $StructName [] Entries;
+			}
+		"
+
+		$HandleArray = New-Object -TypeName $ClassName
+		$HandleArray = [Runtime.InteropServices.Marshal]::PtrToStructure([IntPtr]([long]$ptr + [IntPtr]::Size), [Type]$HandleArray.GetType())
+
         for ($i = 0; $i -lt $handleCount; $i++)
         {
-            $HandleEntry = [PoshInternals.SystemHandleEntry][Runtime.InteropServices.Marshal]::PtrToStructure([IntPtr]([long]$ptr + $offset), [Type]$She.GetType())
+			$HandleEntry = $HandleArray.Entries[$i]
 
 			$sourceProcessHandle = [IntPtr]::Zero
 			$handleDuplicate = [IntPtr]::Zero
 			$sourceProcessHandle = [PoshInternals.Kernel32]::OpenProcess(0x40, $true, $HandleEntry.OwnerProcessId)
 			if ($sourceProcessHandle -eq [IntPtr]::Zero)
 			{
-				$offset += $size
 				continue
 			}
 
 			if (-not [PoshInternals.Kernel32]::DuplicateHandle($sourceProcessHandle, [IntPtr]$HandleEntry.Handle, $CurrentProcessHandle, [ref]$handleDuplicate, 0, $false, 2))
 			{
-				$offset += $size
 				continue
 			}
 
 			$HandleEntry | ConvertTo-HandleHashTable -ProcessHandle $handleDuplicate
-			
-            $offset += $size
         }
     }
     finally
