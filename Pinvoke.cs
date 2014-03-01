@@ -707,7 +707,6 @@ namespace PoshInternals
         }
     }
 
-
     public class HandleInfo
     {
         public int ProcessId { get; private set; }

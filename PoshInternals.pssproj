@@ -49,6 +49,9 @@
     <Compile Include="ScreenSaver.ps1" />
     <Compile Include="Set-WorkingSetToMin.ps1" />
   </ItemGroup>
+  <ItemGroup>
+    <Content Include="Hooks.ps1" />
+  </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <Target Name="Build" />
 </Project>
