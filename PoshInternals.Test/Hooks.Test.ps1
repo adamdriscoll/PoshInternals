@@ -12,5 +12,7 @@ TestFixture "HooksTest" {
 		}
 
 		[Console]::Beep(1000, 1000)
+
+		Get-Hook | Remove-Hook
 	}
 }

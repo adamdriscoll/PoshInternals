@@ -1,3 +1,5 @@
+$Global:ActiveHooks = New-Object -TypeName System.Collections.ArrayList
+
 function Set-Hook {
 	[CmdletBinding()]
 	param(
@@ -99,37 +101,70 @@ function Set-Hook {
 				";}
 	}
 
-	#End {
-		$ScriptDirectory = Split-Path $MyInvocation.MyCommand.Module.Path -Parent
-		$Assembly = (Join-Path $ScriptDirectory "EasyHook\EasyHook.dll")
-		Add-Type -Path $Assembly | Out-Null
+	$ScriptDirectory = Split-Path $MyInvocation.MyCommand.Module.Path -Parent
+	$Assembly = (Join-Path $ScriptDirectory "EasyHook\EasyHook.dll")
+	Add-Type -Path $Assembly | Out-Null
 
-		if ($Local)
-		{
-			$Class = GenerateClass -FunctionName $EntryPoint -ReturnType $ReturnType -ScriptBlock $ScriptBlock 
-			Add-Type $Class.ClassDefinition
+	if ($Local)
+	{
+		$Class = GenerateClass -FunctionName $EntryPoint -ReturnType $ReturnType -ScriptBlock $ScriptBlock 
+		Add-Type $Class.ClassDefinition
 
-			Invoke-Expression "[$($Class.ClassName)]::Runspace = [System.Management.Automation.Runspaces.Runspace]::DefaultRunspace"
-			Invoke-Expression "[$($Class.ClassName)]::ScriptBlock = `$ScriptBlock"
-			$Delegate = Invoke-Expression "[$($Class.ClassName)].GetMember(`"$($EntryPoint)_Hooked`").CreateDelegate([Type]'$($Class.DelegateName)')"
+		Invoke-Expression "[$($Class.ClassName)]::Runspace = [System.Management.Automation.Runspaces.Runspace]::DefaultRunspace"
+		Invoke-Expression "[$($Class.ClassName)]::ScriptBlock = `$ScriptBlock"
+		$Delegate = Invoke-Expression "[$($Class.ClassName)].GetMember(`"$($EntryPoint)_Hooked`").CreateDelegate([Type]'$($Class.DelegateName)')"
 
-			$Hook = [EasyHook.LocalHook]::Create([EasyHook.LocalHook]::GetProcAddress($DLL, $EntryPoint), $Delegate, $null)
-			$Hook.ThreadACL.SetExclusiveACL([int[]]@(1))
+		$Hook = [EasyHook.LocalHook]::Create([EasyHook.LocalHook]::GetProcAddress($DLL, $EntryPoint), $Delegate, $null)
+		$Hook.ThreadACL.SetExclusiveACL([int[]]@(1))
 
-			$FriendlyHook = [PSCustomObject]@{RawHook=$Hook;Remove={$this.RawHook.Dispose();$ActiveHooks-=$this;};Dll=$Dll;EntryPoint=$EntryPoint}
+		$FriendlyHook = [PSCustomObject]@{RawHook=$Hook;Dll=$Dll;EntryPoint=$EntryPoint}
+
+		$FriendlyHook = $FriendlyHook | Add-Member -MemberType ScriptMethod -Value {$Global:ActiveHooks.Remove($this);$this.RawHook.Dispose();} -Name "Remove" -PassThru
 			
-			$FriendlyHook
+		$FriendlyHook
 
-			$Global:ActiveHooks += $FriendlyHook
-		}
-		else
-		{
-			Write-Error "Remote hooking not yet supported"
-		}
-	#}
+		$Global:ActiveHooks.Add($FriendlyHook)
+	}
+	else
+	{
+		Write-Error "Remote hooking not yet supported"
+	}
 }
 
 function Get-Hook 
 {
-	$Global:ActiveHooks
+	param([String]$EntryPoint, [String]$Dll)
+
+	$Hooks = $Global:ActiveHooks.Clone()
+	
+	if (-not [String]::IsNullOrEmpty($EntryPoint))
+	{
+		$Hooks = $Hooks | Where EntryPoint -Like $EntryPoint
+	}
+
+	if (-not [String]::IsNullOrEmpty($Dll))
+	{
+		$Hooks = $Hooks | Where Dll -Like $Dll
+	}
+
+	$Hooks
+}
+
+function Remove-Hook
+{
+	[CmdletBinding()]
+	param([Parameter(ValueFromPipeline=$true)][Object]$Hook, 
+		  [Parameter()][String]$EntryPoint, 
+		  [Parameter()][String]$Dll)
+	
+	Begin {
+		if ($EntryPoint -ne $null -or $Dll -ne $null)
+		{
+			$Hook = Get-Hook -EntryPoint $EntryPoint  -Dll $Dll
+		}
+	}
+
+	Process {
+		$Hook.Remove()
+	}
 }
