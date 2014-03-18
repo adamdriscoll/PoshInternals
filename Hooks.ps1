@@ -12,7 +12,9 @@ function Set-Hook {
 	[Parameter(Mandatory)]
 	[Type]$ReturnType,
 	[Parameter(Mandatory)]
-	[ScriptBlock]$ScriptBlock
+	[ScriptBlock]$ScriptBlock,
+	[Parameter()]
+	[int]$ProcessId
 	)
 
 	function GenerateClass
@@ -127,7 +129,9 @@ function Set-Hook {
 	}
 	else
 	{
-		Write-Error "Remote hooking not yet supported"
+		$ModulePath = $MyInvocation.MyCommand.Module.Path
+		$Global:HookServer = [PoshInternals.HookInterface]::CreateServer()
+		[PoshInternals.HookInterface]::Inject($ProcessId, $EntryPoint, $Dll, $ReturnType.FullName, $ScriptBlock.ToString(), $ModulePath);
 	}
 }
 
