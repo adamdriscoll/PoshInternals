@@ -635,12 +635,12 @@ namespace PoshInternals
             hActCtx = Kernel32.CreateActCtx(ref actCtx);
             if (hActCtx == new IntPtr(-1))
             {
-                throw new Win32Exception(Marshal.GetLastWin32Error(), "Failed to create activation context.");
+                throw new Win32Exception();
             }
 
             if (!Kernel32.ActivateActCtx(hActCtx, out cookie))
             {
-                throw new Win32Exception(Marshal.GetLastWin32Error(), "Failed to activate activation context.");
+                throw new Win32Exception();
             }
         }
 

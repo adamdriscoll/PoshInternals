@@ -10,8 +10,8 @@ if ($HookInject -eq $null)
 
 	$HookPath = (Join-Path ([IO.Path]::GetTempPath()) "HookInject.dll")
 	Add-Type -Path $EasyHookPath
-	Add-Type -Path (Join-Path $ScriptDirectory "HookInject.cs") -OutputAssembly $HookPath -ReferencedAssemblies "System.Runtime.Remoting","System.Management.Automation", $EasyHookPath -PassThru
-	[Reflection.Assembly]::LoadFrom($HookPath)
+	Add-Type -Path (Join-Path $ScriptDirectory "HookInject.cs") -OutputAssembly $HookPath -ReferencedAssemblies "System.Runtime.Remoting","System.Management.Automation", $EasyHookPath -PassThru | Out-Null
+	[Reflection.Assembly]::LoadFrom($HookPath) | Out-Null
 }
 
 

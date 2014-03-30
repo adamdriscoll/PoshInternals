@@ -12,7 +12,7 @@ function Enter-ActivationContext
     # The manifest to use for registry free COM activation
     [CmdletBinding()]
     param(
-        [Parameter(Manadatory)]
+        [Parameter(Mandatory)]
         $manifest
         )
 
