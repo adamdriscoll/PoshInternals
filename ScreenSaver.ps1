@@ -32,7 +32,7 @@ function Show-ScreenSaver
     $specific = New-Object System.Windows.Forms.Label
 
     $smiley.Text = ":("
-    $general.Text = "Your PC ran into a problem that it couldn't handle, and not it needs to restart."
+    $general.Text = "Your PC ran into a problem that it couldn't handle, and now it needs to restart."
     $specific.Text = "You can search for the error online: HAL_INITIALIZATION_FAILED"
 
     $general.AutoSize = $false
