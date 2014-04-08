@@ -7,6 +7,12 @@ Project("{F5034706-568F-408A-B7B3-4D38C6DB8A32}") = "PoshInternals", "PoshIntern
 EndProject
 Project("{F5034706-568F-408A-B7B3-4D38C6DB8A32}") = "PoshInternals.Test", "PoshInternals.Test\PoshInternals.Test.pssproj", "{B325AAC1-5B45-4D2C-8281-6DA120B3FD5B}"
 EndProject
+Project("{F5034706-568F-408A-B7B3-4D38C6DB8A32}") = "Summit.Demos", "..\..\..\Dropbox\Presentations\2014-4 PowerShell Summit\PoshInternals\Summit.Demos\Summit.Demos.pssproj", "{84F4C98A-F2CF-420A-AEBC-751759598641}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BadProcess", "..\..\..\Dropbox\Presentations\2014-4 PowerShell Summit\PoshInternals\Summit.Demos\BadProcess\BadProcess.csproj", "{904399F7-CDC2-44CD-832F-D0AC96692F56}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PoshExecSvr", "PoshExecSvr\PoshExecSvr.csproj", "{65C11553-891A-4539-9530-0821C247EBC5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +27,18 @@ Global
 		{B325AAC1-5B45-4D2C-8281-6DA120B3FD5B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B325AAC1-5B45-4D2C-8281-6DA120B3FD5B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B325AAC1-5B45-4D2C-8281-6DA120B3FD5B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{84F4C98A-F2CF-420A-AEBC-751759598641}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{84F4C98A-F2CF-420A-AEBC-751759598641}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{84F4C98A-F2CF-420A-AEBC-751759598641}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{84F4C98A-F2CF-420A-AEBC-751759598641}.Release|Any CPU.Build.0 = Release|Any CPU
+		{904399F7-CDC2-44CD-832F-D0AC96692F56}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{904399F7-CDC2-44CD-832F-D0AC96692F56}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{904399F7-CDC2-44CD-832F-D0AC96692F56}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{904399F7-CDC2-44CD-832F-D0AC96692F56}.Release|Any CPU.Build.0 = Release|Any CPU
+		{65C11553-891A-4539-9530-0821C247EBC5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{65C11553-891A-4539-9530-0821C247EBC5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{65C11553-891A-4539-9530-0821C247EBC5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{65C11553-891A-4539-9530-0821C247EBC5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

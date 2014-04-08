@@ -10,38 +10,38 @@
     [Parameter()]
     $FilePath,
     [Parameter()]
-    [Switch]$Interact
+    [Switch]$Interact,
+	[Parameter()]
+	[Switch]$Cleanup
     )
 
 	$Service = Get-Service -ComputerName $ComputerName -Name "PoshExecSvr" -ErrorAction SilentlyContinue
 	$drive = Get-PSDrive -Name "$ComputerName Admin" -ErrorAction SilentlyContinue
 
-	if ($Service -ne $null)
+	if ($drive -eq $null)
 	{
-		$Service | Stop-Service
-		Start-Process -FilePath "C:\windows\system32\sc.exe" -ArgumentList "\\`$ComputerName","delete","PoshExecSvr" -Credential $Credential -Wait -WindowStyle Hidden
+		Write-Verbose "Mapping admin share drive."
+		New-PSDrive -Name "$ComputerName Admin" -Root "\\$ComputerName\Admin`$"  -Credential $Credential -PSProvider FileSystem | Out-Null 
 	}
 
-	if ($drive -ne $null)
+	if ($Service -eq $null)
 	{
-		Remove-Item "$ComputerName Admin:\PoshExecSvr.exe" 
+		$Binary = Join-Path ([io.path]::GetTempPath()) "PoshExecSvr.exe"
+		$ScriptDirectory = $MyInvocation.MyCommand.Module.ModuleBase
 
-		$drive | Remove-PSDrive
+		Write-Verbose "Compiling PoshExecSvr service."
+		Add-Type -OutputType ConsoleApplication -OutputAssembly $Binary  -ReferencedAssemblies "System.Data","System.ServiceProcess","System.Xml" -Path (Join-Path $ScriptDirectory "PoshExec.cs")
+
+		Write-Verbose "Copying service to remote machine [$ComputerName]."
+		Copy-Item $Binary "$ComputerName Admin:\PoshExecSvr.exe" 
+
+		Write-Verbose "Creating service using service control manager."
+		$SCArgs = @("\\$ComputerName","create","PoshExecSvr","binpath= C:\windows\PoshExecSvr.exe")
+
+		Start-Process -FilePath "C:\windows\system32\sc.exe" -ArgumentList $SCArgs -Credential $Credential -Wait -WindowStyle Hidden
 	}
 
-	New-PSDrive -Name "$ComputerName Admin" -Root "\\$ComputerName\Admin`$"  -Credential $Credential -PSProvider FileSystem | Out-Null 
-
-	$Binary = Join-Path ([io.path]::GetTempPath()) "PoshExecSvr.exe"
-	$ScriptDirectory = $MyInvocation.MyCommand.Module.ModuleBase
-
-	Add-Type -OutputType ConsoleApplication -OutputAssembly $Binary  -ReferencedAssemblies "System.Data","System.ServiceProcess","System.Xml" -Path (Join-Path $ScriptDirectory "PoshExec.cs")
-
-	Copy-Item $Binary "$ComputerName Admin:\PoshExecSvr.exe" 
-
-	$SCArgs = @("\\$ComputerName","create","PoshExecSvr","binpath= C:\windows\PoshExecSvr.exe")
-
-	Start-Process -FilePath "C:\windows\system32\sc.exe" -ArgumentList $SCArgs -Credential $Credential -Wait -WindowStyle Hidden
-
+	Write-Verbose "Validating service is running."
 	$Service = Get-Service -ComputerName $ComputerName -Name "PoshExecSvr" -ErrorAction SilentlyContinue
 
     #Sometimes the service isn't quite installed, even if we wait for sc.exe to exit
@@ -52,6 +52,7 @@
     }
     elseif ($Services.Status -ne 'Running')
     {
+		Write-Verbose "Starting service."
         $service | Start-Service
     }
 
@@ -80,15 +81,17 @@
 
     $xml = $sr.ReadToEnd()
 
+	Write-Verbose "Sending start up info to service."
     Send-NamedPipeMessage -PipeName "PoshExecSvrPipe" -ComputerName $ComputerName -Message $XML
 
-    Start-Sleep -Seconds 1
+	if ($Cleanup)
+	{
+		Write-Verbose "Cleaning up service."
+		$Service  | Stop-Service 
+		Start-Process -FilePath "C:\windows\system32\sc.exe" -ArgumentList "\\$ComputerName","delete","PoshExecSvr" -Credential $Credential -Wait
+		Remove-Item "$ComputerName Admin:\PoshExecSvr.exe" 
+		Remove-PSDrive -Name "$ComputerName Admin"
+	}
 
-    Get-Service -ComputerName $ComputerName -Name "PoshExecSvr" | Stop-Service
     
-  #  Start-Process -FilePath "C:\windows\system32\sc.exe" -ArgumentList "\\`$ComputerName","delete","PoshExecSvr" -Credential $Credential -Wait -WindowStyle Hidden
-
-   # Remove-Item "$ComputerName Admin:\PoshExecSvr.exe" 
-
-    Remove-PSDrive -Name "$ComputerName Admin"
 }
