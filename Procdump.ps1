@@ -30,7 +30,7 @@ function Out-MiniDump
         if ([String]::IsNullOrEmpty($Path))
         {
             $MS = [DateTime]::Now.Millisecond
-            $Path = Join-Path ([Environment]::CurrentDirectory) "$($Process.ID)_$MS.dmp"
+            $Path = Join-Path (Get-Location) "$($Process.ID)_$MS.dmp"
         }
 		
 		if (-not $Force -and (Test-Path $Path))
@@ -51,19 +51,30 @@ function Out-MiniDump
             $DumpType = [PoshInternals.MINIDUMP_TYPE]::MiniDumpNormal
         }
 
-        $FileName = [PoshInternals.Kernel32]::CreateFile($Path, [System.IO.FileAccess]::Write, [System.IO.FileShare]::None, [IntPtr]::Zero, [System.IO.FileMode]::CreateNew, 0, [IntPtr]::Zero)
-        if ($FileName.IsInvalid)
+		$FileStream = $null
+		try 
+		{
+			Write-Verbose "Dump File Path [$Path]"
+			$FileStream = New-Object -TypeName System.IO.FileStream -ArgumentList $Path,'CreateNew','Write','None'
+		}
+		catch 
+		{
+			Write-Error $_
+			return
+		}
+        
+        if (-not $FileStream)
         {
             throw New-Object System.ComponentModel.Win32Exception
         }
 
-        if (-not [PoshInternals.DbgHelp]::MiniDumpWriteDump($Process.Handle, $Process.Id, $FileName, $DumpType, [IntPtr]::Zero, [IntPtr]::Zero, [IntPtr]::Zero))
+        if (-not [PoshInternals.DbgHelp]::MiniDumpWriteDump($Process.Handle, $Process.Id, $FileStream.Handle, $DumpType, [IntPtr]::Zero, [IntPtr]::Zero, [IntPtr]::Zero))
         {
-			[PoshInternals.Kernel32]::CloseHandle($FileName)
+			$FileStream.Dispose()
             throw New-Object System.ComponentModel.Win32Exception
         }
         
-		[PoshInternals.Kernel32]::CloseHandle($FileName)
+		$FileStream.Dispose()
     }
 }
 

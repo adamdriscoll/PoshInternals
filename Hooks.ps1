@@ -1,4 +1,4 @@
-$Global:ActiveHooks = New-Object -TypeName System.Collections.ArrayList
+$Script:ActiveHooks = New-Object -TypeName System.Collections.ArrayList
 
 function Set-Hook {
 	[CmdletBinding()]
@@ -44,7 +44,14 @@ function Set-Hook {
 		$parameters = ""
 		$parameterNames = ""
 
-		$outVarIndex = 1
+		$outVarIndex = 0
+		if ($ReturnType -ne ([void]))
+		{
+			$outVarIndex = 1
+		}
+
+		
+
 		foreach($PSParameter in $PSParameters)
 		{
 			$parameterNames += $PSParameter.Name + ","
@@ -52,8 +59,14 @@ function Set-Hook {
 			if ($PSParameter.IsOut)
 			{
 				$parameters += "[Out]"
-				$outVarSnippet += "outVars[$outVarIndex];"
-				$initializeSnippet += $PSParameter.Name + " = default($($PSParameter.TypeName));";
+				#$outVarSnippet +=  $PSParameter.Name + " = ($($PSParameter.TypeName))outVars[$outVarIndex].BaseObject;"
+				#$initializeSnippet += $PSParameter.Name + " = default($($PSParameter.TypeName));";
+
+				$parameterNamesForSb += "(new System.Management.Automation.PSReference($($PSParameter.Name))),"
+			}
+			else
+			{
+				$parameterNamesForSb += $PSParameter.Name + ","
 			}
 
 			$parameters += $PSParameter.TypeName + " " + $PSParameter.Name + ","
@@ -63,9 +76,18 @@ function Set-Hook {
 		{
 			$parameters = $parameters.Substring(0, $parameters.Length - 1)
 			$parameterNames = $parameterNames.Substring(0, $parameterNames.Length - 1)
+			$parameterNamesForSb = $parameterNamesForSb.Substring(0, $parameterNamesForSb.Length - 1)
 		}
 
 		$Random = Get-Random -Minimum 0 -Maximum 100000
+
+		$ReturnStatement = ""
+		$DefaultReturnStatement = ""
+		if ($ReturnType -ne ([void]))
+		{
+			$ReturnStatement = "return ($ReturnType)outVars[0].BaseObject";
+			$DefaultReturnStatement = "return default($ReturnType);"
+		}
 
 		@{
 			ClassName = "Detour$Random";
@@ -88,16 +110,20 @@ function Set-Hook {
 						$initializeSnippet
 						try 
 						{
+							System.Console.WriteLine(`"Before Low`" + time.dwLowDateTime);
+							System.Console.WriteLine(`"Before High`" + time.dwHighDateTime);
 							Runspace.DefaultRunspace = Runspace;
-							var outVars = ScriptBlock.Invoke($parameterNames);
+							var outVars = ScriptBlock.Invoke($parameterNamesForSb);
 							$outVarSnippet
-							return ($ReturnType)outVars[0].BaseObject;
+							System.Console.WriteLine(`"After Low`" + time.dwLowDateTime);
+							System.Console.WriteLine(`"After High`" + time.dwHighDateTime);
+							$ReturnStatement
 						}
 						catch (System.Exception ex)
 						{
 							System.Console.WriteLine(ex.Message);
 						}
-						return default($ReturnType);
+						$DefaultReturnStatement
 					}
 				}
 				";}
@@ -110,6 +136,9 @@ function Set-Hook {
 	if ($Local)
 	{
 		$Class = GenerateClass -FunctionName $EntryPoint -ReturnType $ReturnType -ScriptBlock $ScriptBlock 
+
+		Write-Verbose $Class.ClassDefinition
+
 		Add-Type $Class.ClassDefinition
 
 		Invoke-Expression "[$($Class.ClassName)]::Runspace = [System.Management.Automation.Runspaces.Runspace]::DefaultRunspace"
@@ -125,7 +154,7 @@ function Set-Hook {
 			
 		$FriendlyHook
 
-		$Global:ActiveHooks.Add($FriendlyHook)
+		$Script:ActiveHooks.Add($FriendlyHook)
 	}
 	else
 	{
@@ -139,7 +168,7 @@ function Get-Hook
 {
 	param([String]$EntryPoint, [String]$Dll)
 
-	$Hooks = $Global:ActiveHooks.Clone()
+	$Hooks = $Script:ActiveHooks.Clone()
 	
 	if (-not [String]::IsNullOrEmpty($EntryPoint))
 	{

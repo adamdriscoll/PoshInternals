@@ -16,6 +16,8 @@ namespace PoshInternals
     {
         private static string _channelName;
 
+        public static string HookDllPath;
+
         public Runspace Runspace;
 
         public static IpcServerChannel CreateServer()
@@ -27,12 +29,10 @@ namespace PoshInternals
 
         public static void Inject(int pid, string entryPoint, string dll, string typeName, string scriptBlock, string modulePath)
         {
-            var hookDll = Path.Combine(Path.GetTempPath(), "HookInject.dll");
-
             RemoteHooking.Inject(
                             pid,
-                            hookDll, // 32-bit version (the same because AnyCPU)
-                            hookDll, // 64-bit version (the same because AnyCPU)
+                            HookDllPath, // 32-bit version (the same because AnyCPU)
+                            HookDllPath, // 64-bit version (the same because AnyCPU)
                             _channelName,
                             entryPoint,
                             dll,

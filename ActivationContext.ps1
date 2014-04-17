@@ -52,8 +52,6 @@ function New-ActivationContext
 			Open-ActivationContext -ActivationContext $ActivationContextObject
 		}
 
-		#$Script:ActivationContexts += [PSCustomObject]$ActivationContextObject
-
 		[PSCustomObject]$ActivationContextObject
     }
 }
@@ -129,7 +127,6 @@ function Remove-ActivationContext
 	Process {
 		[PoshInternals.Kernel32]::DeactivateActCtx(0, $ActivationContext.Cookie);
 		[PoshInternals.Kernel32]::ReleaseActCtx($ActivationContext.Handle);
-		#$Script:ActivationContexts -= $ActivationContext
 	}
 }
 

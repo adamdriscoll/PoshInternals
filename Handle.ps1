@@ -168,7 +168,7 @@ function ConvertTo-HandleHashTable
 				return
 			}
 
-			$Path = [Runtime.InteropServices.Marshal]::PtrToStringUni([IntPtr]([long]$ptr+ 2 * [IntPtr]::Size))
+			$Path = [Runtime.InteropServices.Marshal]::PtrToStringUni([IntPtr]([long]$ptr + 2 * [IntPtr]::Size))
 
 			if ($HandleType -eq "File" -or $HandleType -eq "Directory")
 			{
