@@ -17,6 +17,41 @@ function Set-Hook {
 	[int]$ProcessId
 	)
 
+	function FixupScriptBlock
+	{
+		param($ScriptBlock)
+
+		Write-Debug  $ScriptBlock.ToString()
+
+		$ScriptBlock = ConvertTo-Ast $ScriptBlock.ToString().Trim("{","}")
+
+		$RefArg = Get-Ast -SearchNested -Ast $ScriptBlock -TypeConstraint -Filter { 
+			$args[0].TypeName.Name -eq "ref" 
+		} 
+
+		Write-Debug "RefArg: $RefArg"
+
+		if ($RefArg)
+		{
+			$constraints = Get-Ast -Ast $ScriptBlock -TypeConstraint -SearchNested
+			foreach($constraint in $constraints)
+			{
+				Write-Debug "Constraint: $constraint"
+				if ($constraint.TypeName.Name -ne "ref")
+				{
+					$ScriptBlock = Remove-Extent -ScriptBlock $ScriptBlock -Extent $constraint.Extent
+
+					Write-Debug 'Adjusted block:'
+					Write-Debug $ScriptBlock.ToString()
+
+					return FixupScriptBlock $ScriptBlock
+				} 
+			}
+		}
+
+		$ScriptBlock
+	}
+
 	function GenerateClass
 	{
 		param([String]$FunctionName, [String]$ReturnType, [ScriptBlock]$ScriptBlock)
@@ -39,30 +74,25 @@ function Set-Hook {
 			$PSParameters += $PSParameter
 		}
 
-		$initializeSnippet = ""
-		$outVarSnippet = ""
+		$initRef = ""
+		$preRef = ""
+		$postRef = ""
+
 		$parameters = ""
 		$parameterNames = ""
-
-		$outVarIndex = 0
-		if ($ReturnType -ne ([void]))
-		{
-			$outVarIndex = 1
-		}
-
-		
-
 		foreach($PSParameter in $PSParameters)
 		{
 			$parameterNames += $PSParameter.Name + ","
 
 			if ($PSParameter.IsOut)
 			{
-				$parameters += "[Out]"
-				#$outVarSnippet +=  $PSParameter.Name + " = ($($PSParameter.TypeName))outVars[$outVarIndex].BaseObject;"
-				#$initializeSnippet += $PSParameter.Name + " = default($($PSParameter.TypeName));";
+				$parameters += "out "
+				$parameterNamesForSb += "$($PSParameter.Name)ref,"
 
-				$parameterNamesForSb += "(new System.Management.Automation.PSReference($($PSParameter.Name))),"
+				$initRef += "$($PSParameter.Name) = default($($PSParameter.TypeName)); `n"
+				$preRef  += "var $($PSParameter.Name)ref = new PSReference($($PSParameter.Name)); `n"
+				$postRef  += "$($PSParameter.Name) = ($($PSParameter.TypeName))$($PSParameter.Name)ref.Value; `n"
+
 			}
 			else
 			{
@@ -107,16 +137,15 @@ function Set-Hook {
 
 					public static $ReturnType $($FunctionName)_Hooked($parameters)
 					{
-						$initializeSnippet
+						$initRef
 						try 
-						{
-							System.Console.WriteLine(`"Before Low`" + time.dwLowDateTime);
-							System.Console.WriteLine(`"Before High`" + time.dwHighDateTime);
+						{ 
 							Runspace.DefaultRunspace = Runspace;
+
+							$preRef
 							var outVars = ScriptBlock.Invoke($parameterNamesForSb);
-							$outVarSnippet
-							System.Console.WriteLine(`"After Low`" + time.dwLowDateTime);
-							System.Console.WriteLine(`"After High`" + time.dwHighDateTime);
+							$postRef
+
 							$ReturnStatement
 						}
 						catch (System.Exception ex)
@@ -136,6 +165,7 @@ function Set-Hook {
 	if ($Local)
 	{
 		$Class = GenerateClass -FunctionName $EntryPoint -ReturnType $ReturnType -ScriptBlock $ScriptBlock 
+		$ScriptBlock = (FixupScriptBlock $ScriptBlock.Ast).GetScriptBlock()
 
 		Write-Verbose $Class.ClassDefinition
 

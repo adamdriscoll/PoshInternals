@@ -31,6 +31,7 @@
     <Compile Include="MemoryMappedFile.Test.ps1" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Ast.Test.ps1" />
     <Content Include="Hooks.Test.ps1" />
     <Content Include="Mutex.Test.ps1" />
     <Content Include="PoshExec.Test.ps1" />

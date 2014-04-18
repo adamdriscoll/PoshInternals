@@ -50,6 +50,7 @@
     <Compile Include="Set-WorkingSetToMin.ps1" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Ast.ps1" />
     <Content Include="HookInject.cs" />
     <Content Include="Hooks.ps1" />
   </ItemGroup>
