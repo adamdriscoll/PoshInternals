@@ -3,8 +3,6 @@ $Script:ActiveHooks = New-Object -TypeName System.Collections.ArrayList
 function Set-Hook {
 	[CmdletBinding()]
 	param(
-	[Parameter()]
-	[Switch]$Local,
 	[Parameter(Mandatory)]
 	[String]$Dll,
 	[Parameter(Mandatory)]
@@ -14,13 +12,21 @@ function Set-Hook {
 	[Parameter(Mandatory)]
 	[ScriptBlock]$ScriptBlock,
 	[Parameter()]
-	[int]$ProcessId
+	[int]$ProcessId = $PID,
+	[Parameter()]
+	[String]$AdditionalCode
 	)
+
+	$Assembly = [System.Reflection.Assembly]::LoadWithPartialName("PoshHook");
+	if ($Assembly  -eq $null)
+	{
+		throw new-object System.Exception -ArgumentList "PoshHook is not initialized. Run Initialize-PoshHook."
+	}
 
 	function FixupScriptBlock
 	{
 		param($ScriptBlock)
-
+		
 		Write-Debug  $ScriptBlock.ToString()
 
 		$ScriptBlock = ConvertTo-Ast $ScriptBlock.ToString().Trim("{","}")
@@ -29,21 +35,14 @@ function Set-Hook {
 			$args[0].TypeName.Name -eq "ref" 
 		} 
 
-		Write-Debug "RefArg: $RefArg"
-
 		if ($RefArg)
 		{
 			$constraints = Get-Ast -Ast $ScriptBlock -TypeConstraint -SearchNested
 			foreach($constraint in $constraints)
 			{
-				Write-Debug "Constraint: $constraint"
 				if ($constraint.TypeName.Name -ne "ref")
 				{
 					$ScriptBlock = Remove-Extent -ScriptBlock $ScriptBlock -Extent $constraint.Extent
-
-					Write-Debug 'Adjusted block:'
-					Write-Debug $ScriptBlock.ToString()
-
 					return FixupScriptBlock $ScriptBlock
 				} 
 			}
@@ -115,7 +114,7 @@ function Set-Hook {
 		$DefaultReturnStatement = ""
 		if ($ReturnType -ne ([void]))
 		{
-			$ReturnStatement = "return ($ReturnType)outVars[0].BaseObject";
+			$ReturnStatement = "return ($ReturnType)outVars[0].BaseObject;";
 			$DefaultReturnStatement = "return default($ReturnType);"
 		}
 
@@ -126,6 +125,8 @@ function Set-Hook {
 				using System.Runtime.InteropServices;
 				using System.Management.Automation;
 				using System.Management.Automation.Runspaces;
+
+				$AdditionalCode
 
 				[UnmanagedFunctionPointer(CallingConvention.StdCall, CharSet=CharSet.Unicode, SetLastError=true)]
 				public delegate $ReturnType $($FunctionName)_Delegate$Random($parameters);
@@ -159,10 +160,9 @@ function Set-Hook {
 	}
 
 	$ScriptDirectory = Split-Path $MyInvocation.MyCommand.Module.Path -Parent
-	$Assembly = (Join-Path $ScriptDirectory "EasyHook\EasyHook.dll")
-	Add-Type -Path $Assembly | Out-Null
+	[Reflection.Assembly]::LoadWithPartialName("EasyHook") | Out-Null
 
-	if ($Local)
+	if ($ProcessId -eq $PID)
 	{
 		$Class = GenerateClass -FunctionName $EntryPoint -ReturnType $ReturnType -ScriptBlock $ScriptBlock 
 		$ScriptBlock = (FixupScriptBlock $ScriptBlock.Ast).GetScriptBlock()
@@ -188,9 +188,30 @@ function Set-Hook {
 	}
 	else
 	{
+		[Reflection.Assembly]::LoadWithPartialName("PoshHook") | Out-Null
+
+		if ([IntPtr]::Size -eq 4)
+		{
+			[PoshInternals.Kernel32]::LoadLibrary((Join-Path $ScriptDirectory "EasyHook\EasyHook32.dll"))
+		}
+		else
+		{
+			[PoshInternals.Kernel32]::LoadLibrary((Join-Path $ScriptDirectory "EasyHook\EasyHook64.dll"))
+		}
+		
+		Push-Location 
+		Set-Location (Join-Path $ScriptDirectory "EasyHook")
+
 		$ModulePath = $MyInvocation.MyCommand.Module.Path
-		$Global:HookServer = [PoshInternals.HookInterface]::CreateServer()
-		[PoshInternals.HookInterface]::Inject($ProcessId, $EntryPoint, $Dll, $ReturnType.FullName, $ScriptBlock.ToString(), $ModulePath);
+
+		if ($Script:HookServer -eq $null)
+		{
+			$Script:HookServer = [PoshInternals.HookInterface]::CreateServer()
+		}
+		
+		[PoshInternals.HookInterface]::Inject($ProcessId, $EntryPoint, $Dll, $ReturnType.FullName, $ScriptBlock.ToString(), $ModulePath)
+
+		Pop-Location
 	}
 }
 
@@ -230,4 +251,54 @@ function Remove-Hook
 	Process {
 		$Hook.Remove()
 	}
+}
+
+function Initialize-PoshHook 
+{
+	$Assembly = [System.Reflection.Assembly]::LoadWithPartialName("PoshHook")
+	if ($Assembly -ne $null)
+	{	
+		Write-Warning "PoshHooks already initialized."
+		return
+	}
+
+	Add-Type -AssemblyName System.EnterpriseServices 
+	$Publish = New-Object System.EnterpriseServices.Internal.Publish
+
+	$EasyHookPath = (Join-Path $ScriptDirectory "EasyHook\EasyHook.dll")
+	$Publish.GacInstall($EasyHookPath)
+
+	$EasyHook = [System.Reflection.Assembly]::LoadWithPartialName("EasyHook")
+
+	$HookPath = (Join-Path ([IO.Path]::GetTempPath()) "PoshHook.dll")
+	$CompilerParameters = New-Object System.CodeDom.Compiler.CompilerParameters
+	$CompilerParameters.CompilerOptions = "/keyfile:`"$((Join-Path $ScriptDirectory "PoshInternals.snk"))`""
+	$CompilerParameters.ReferencedAssemblies.Add($EasyHook.Location) | Out-Null
+	$CompilerParameters.ReferencedAssemblies.Add([System.Management.Automation.Cmdlet].Assembly.Location) | Out-Null
+	$CompilerParameters.ReferencedAssemblies.Add("System.dll") | Out-Null
+	$CompilerParameters.ReferencedAssemblies.Add("System.Core.dll") | Out-Null
+	$CompilerParameters.ReferencedAssemblies.Add("System.Runtime.Remoting.dll") | Out-Null
+	$CompilerParameters.OutputAssembly = $HookPath
+
+	Add-Type -Path (Join-Path $ScriptDirectory "HookInject.cs") -CompilerParameters $CompilerParameters | Out-Null 
+	
+	$Publish.GacInstall($HookPath)
+}
+
+function Uninitialize-PoshHook {
+	Add-Type -AssemblyName System.EnterpriseServices 
+	$Publish = New-Object System.EnterpriseServices.Internal.Publish
+
+	$Assembly = [System.Reflection.Assembly]::LoadWithPartialName("PoshHook")
+	if ($Assembly -ne $null)
+	{
+		$Publish.GacRemove($Assembly.Location)
+	}
+
+	$Assembly = [System.Reflection.Assembly]::LoadWithPartialName("EasyHook")
+	if ($Assembly -ne $null)
+	{
+		$Publish.GacRemove($Assembly.Location)
+	}
+	
 }

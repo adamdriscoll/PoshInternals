@@ -53,6 +53,7 @@
     <Content Include="Ast.ps1" />
     <Content Include="HookInject.cs" />
     <Content Include="Hooks.ps1" />
+    <Content Include="Interop.ps1" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <Target Name="Build" />

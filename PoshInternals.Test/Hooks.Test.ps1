@@ -5,7 +5,7 @@ TestFixture "HooksTest" {
 	}
 
 	TestCase "LocalHookTest" {
-		Set-Hook -Local -Dll "Kernel32.dll" -ReturnType "bool" -EntryPoint "Beep" -ScriptBlock {
+		Set-Hook -Dll "Kernel32.dll" -ReturnType "bool" -EntryPoint "Beep" -Verbose -ScriptBlock {
 			param([int]$Freq, [int]$Duration)
 			Write-Host "Frequency was ($Freq) and duration was ($Duration)"
 			return $true
