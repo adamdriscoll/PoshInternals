@@ -53,7 +53,7 @@ function Set-Hook {
 
 	function GenerateClass
 	{
-		param([String]$FunctionName, [String]$ReturnType, [ScriptBlock]$ScriptBlock)
+		param([String]$FunctionName, [String]$ReturnType, [ScriptBlock]$ScriptBlock, [String]$Dll)
 
 		$PSParameters = @()
 		foreach($parameter in $ScriptBlock.Ast.ParamBlock.Parameters)
@@ -128,6 +128,9 @@ function Set-Hook {
 
 				$AdditionalCode
 
+				[DllImport(`"$Dll`", CharSet=CharSet.Unicode, SetLastError=true)]
+				public static extern $ReturnType $($FunctionName)($parameters);
+
 				[UnmanagedFunctionPointer(CallingConvention.StdCall, CharSet=CharSet.Unicode, SetLastError=true)]
 				public delegate $ReturnType $($FunctionName)_Delegate$Random($parameters);
 
@@ -142,6 +145,8 @@ function Set-Hook {
 						try 
 						{ 
 							Runspace.DefaultRunspace = Runspace;
+
+							Runspace.DefaultRunspace.SessionStateProxy.SetVariable(`"this`", this);
 
 							$preRef
 							var outVars = ScriptBlock.Invoke($parameterNamesForSb);
