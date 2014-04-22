@@ -14,7 +14,9 @@ function Set-Hook {
 	[Parameter()]
 	[int]$ProcessId = $PID,
 	[Parameter()]
-	[String]$AdditionalCode
+	[String]$AdditionalCode,
+	[Parameter()]
+	[Switch]$Log
 	)
 
 	$Assembly = [System.Reflection.Assembly]::LoadWithPartialName("PoshHook");
@@ -25,11 +27,11 @@ function Set-Hook {
 
 	function FixupScriptBlock
 	{
-		param($ScriptBlock)
+		param($ScriptBlock, $ClassName)
 		
 		Write-Debug  $ScriptBlock.ToString()
 
-		$ScriptBlock = ConvertTo-Ast $ScriptBlock.ToString().Trim("{","}")
+		$ScriptBlock = ConvertTo-Ast $ScriptBlock.ToString().Trim("{","}").Replace("[Detour]", "[$ClassName]")
 
 		$RefArg = Get-Ast -SearchNested -Ast $ScriptBlock -TypeConstraint -Filter { 
 			$args[0].TypeName.Name -eq "ref" 
@@ -53,7 +55,7 @@ function Set-Hook {
 
 	function GenerateClass
 	{
-		param([String]$FunctionName, [String]$ReturnType, [ScriptBlock]$ScriptBlock, [String]$Dll)
+		param([String]$FunctionName, [String]$ReturnType, [ScriptBlock]$ScriptBlock, [String]$Dll, [String]$AdditionalCode)
 
 		$PSParameters = @()
 		foreach($parameter in $ScriptBlock.Ast.ParamBlock.Parameters)
@@ -122,20 +124,21 @@ function Set-Hook {
 			ClassName = "Detour$Random";
 			DelegateName = " $($FunctionName)_Delegate$Random";
 			ClassDefinition = "
+				using System;
 				using System.Runtime.InteropServices;
 				using System.Management.Automation;
 				using System.Management.Automation.Runspaces;
 
 				$AdditionalCode
 
-				[DllImport(`"$Dll`", CharSet=CharSet.Unicode, SetLastError=true)]
-				public static extern $ReturnType $($FunctionName)($parameters);
-
 				[UnmanagedFunctionPointer(CallingConvention.StdCall, CharSet=CharSet.Unicode, SetLastError=true)]
 				public delegate $ReturnType $($FunctionName)_Delegate$Random($parameters);
 
 				public class Detour$Random 
 				{
+					[DllImport(`"$Dll`", CharSet=CharSet.Unicode, SetLastError=true)]
+					public static extern $ReturnType $($FunctionName)($parameters);
+
 					public static ScriptBlock ScriptBlock;
 					public static Runspace Runspace;
 
@@ -145,20 +148,39 @@ function Set-Hook {
 						try 
 						{ 
 							Runspace.DefaultRunspace = Runspace;
-
-							Runspace.DefaultRunspace.SessionStateProxy.SetVariable(`"this`", this);
+							Runspace.DefaultRunspace.SessionStateProxy.SetVariable(`"$FunctionName`", typeof(Detour$Random).GetMethod(`"$FunctionName`"));
 
 							$preRef
 							var outVars = ScriptBlock.Invoke($parameterNamesForSb);
 							$postRef
 
+							Log(outVars[0].BaseObject.ToString());
+
 							$ReturnStatement
 						}
 						catch (System.Exception ex)
 						{
-							System.Console.WriteLine(ex.Message);
+							Log(ex.Message);
 						}
 						$DefaultReturnStatement
+					}
+
+					private static void Log(string message)
+					{
+						try
+						{
+							if (!System.Diagnostics.EventLog.SourceExists(`"PoshHook`"))
+							{
+								System.Diagnostics.EventLog.CreateEventSource(`"PoshHook`", `"Application`");
+							}
+                
+							var log = new System.Diagnostics.EventLog(`"Application`", `".`", `"PoshHook`");
+							log.WriteEntry(message);
+						}
+						catch
+						{
+                
+						}
 					}
 				}
 				";}
@@ -167,10 +189,26 @@ function Set-Hook {
 	$ScriptDirectory = Split-Path $MyInvocation.MyCommand.Module.Path -Parent
 	[Reflection.Assembly]::LoadWithPartialName("EasyHook") | Out-Null
 
+	$DepPath = (Join-Path $ScriptDirectory "EasyHook")
+	Write-Verbose "Set EasyHook Dependency Path to $DepPath"
+	[EasyHook.Config]::DependencyPath = $DepPath
+
 	if ($ProcessId -eq $PID)
 	{
-		$Class = GenerateClass -FunctionName $EntryPoint -ReturnType $ReturnType -ScriptBlock $ScriptBlock 
-		$ScriptBlock = (FixupScriptBlock $ScriptBlock.Ast).GetScriptBlock()
+		if ([IntPtr]::Size -eq 4)
+		{
+			[PoshInternals.Kernel32]::LoadLibrary((Join-Path $ScriptDirectory "EasyHook\EasyHook32.dll"))
+		}
+		else
+		{
+			[PoshInternals.Kernel32]::LoadLibrary((Join-Path $ScriptDirectory "EasyHook\EasyHook64.dll"))
+		}
+
+		$Class = GenerateClass -FunctionName $EntryPoint -ReturnType $ReturnType -ScriptBlock $ScriptBlock -Dll $Dll -AdditionalCode $AdditionalCode 
+
+		Write-EventLog -LogName "Application" -Source "PoshHook" -Message $Class.ClassDefinition -EventId 1
+
+		$ScriptBlock = (FixupScriptBlock $ScriptBlock.Ast $Class.ClassName).GetScriptBlock()
 
 		Write-Verbose $Class.ClassDefinition
 
@@ -197,26 +235,25 @@ function Set-Hook {
 
 		if ([IntPtr]::Size -eq 4)
 		{
+			Write-Verbose "Loading EasyHook32.dll..."
 			[PoshInternals.Kernel32]::LoadLibrary((Join-Path $ScriptDirectory "EasyHook\EasyHook32.dll"))
 		}
 		else
 		{
+			Write-Verbose "Loading EasyHook64.dll..."
 			[PoshInternals.Kernel32]::LoadLibrary((Join-Path $ScriptDirectory "EasyHook\EasyHook64.dll"))
 		}
 		
-		Push-Location 
-		Set-Location (Join-Path $ScriptDirectory "EasyHook")
-
 		$ModulePath = $MyInvocation.MyCommand.Module.Path
 
 		if ($Script:HookServer -eq $null)
 		{
+			Write-Verbose "Creating HookInterface server..."
 			$Script:HookServer = [PoshInternals.HookInterface]::CreateServer()
 		}
 		
-		[PoshInternals.HookInterface]::Inject($ProcessId, $EntryPoint, $Dll, $ReturnType.FullName, $ScriptBlock.ToString(), $ModulePath)
-
-		Pop-Location
+		Write-Verbose "Injecting remote hook..."
+		[PoshInternals.HookInterface]::Inject($ProcessId, $EntryPoint, $Dll, $ReturnType.FullName, $ScriptBlock.ToString(), $ModulePath, $AdditionalCode, $Log)
 	}
 }
 
@@ -258,7 +295,7 @@ function Remove-Hook
 	}
 }
 
-function Initialize-PoshHook 
+function Register-PoshHook 
 {
 	$Assembly = [System.Reflection.Assembly]::LoadWithPartialName("PoshHook")
 	if ($Assembly -ne $null)
@@ -290,7 +327,7 @@ function Initialize-PoshHook
 	$Publish.GacInstall($HookPath)
 }
 
-function Uninitialize-PoshHook {
+function Unregister-PoshHook {
 	Add-Type -AssemblyName System.EnterpriseServices 
 	$Publish = New-Object System.EnterpriseServices.Internal.Publish
 

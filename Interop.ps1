@@ -8,7 +8,7 @@ function ConvertTo-Object {
 		)
 
 	Process {
-		[System.Runtime.InteropServices.Marshal]::PtrToStructure($Ptr, $Type)
+		[System.Runtime.InteropServices.Marshal]::PtrToStructure($Ptr, [Type]$Type)
 	}
 }
 
