@@ -1,8 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2013
-VisualStudioVersion = 12.0.30110.0
-MinimumVisualStudioVersion = 10.0.40219.1
+# Visual Studio 2012
 Project("{F5034706-568F-408A-B7B3-4D38C6DB8A32}") = "PoshInternals", "PoshInternals.pssproj", "{6CAFC0C6-A428-4D30-A9F9-700E829FEA51}"
 EndProject
 Project("{F5034706-568F-408A-B7B3-4D38C6DB8A32}") = "PoshInternals.Test", "PoshInternals.Test\PoshInternals.Test.pssproj", "{B325AAC1-5B45-4D2C-8281-6DA120B3FD5B}"
@@ -12,6 +10,10 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BadProcess", "..\..\..\Dropbox\Presentations\2014-4 PowerShell Summit\PoshInternals\Summit.Demos\BadProcess\BadProcess.csproj", "{904399F7-CDC2-44CD-832F-D0AC96692F56}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PoshExecSvr", "PoshExecSvr\PoshExecSvr.csproj", "{65C11553-891A-4539-9530-0821C247EBC5}"
+EndProject
+Project("{F5034706-568F-408A-B7B3-4D38C6DB8A32}") = "Hook.Demo", "..\..\..\Dropbox\Presentations\2014-4 PowerShell Summit\Windows Hooking\Demo\Hook.Demo.pssproj", "{653F50CB-C5E9-4B50-BEDD-28A5105DC099}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Encryptor", "..\..\..\Dropbox\Presentations\2014-4 PowerShell Summit\Windows Hooking\Encryptor\Encryptor.csproj", "{40E7F4E8-9E54-419A-885D-30ACAB9B20A5}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -39,6 +41,14 @@ Global
 		{65C11553-891A-4539-9530-0821C247EBC5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{65C11553-891A-4539-9530-0821C247EBC5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{65C11553-891A-4539-9530-0821C247EBC5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{653F50CB-C5E9-4B50-BEDD-28A5105DC099}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{653F50CB-C5E9-4B50-BEDD-28A5105DC099}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{653F50CB-C5E9-4B50-BEDD-28A5105DC099}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{653F50CB-C5E9-4B50-BEDD-28A5105DC099}.Release|Any CPU.Build.0 = Release|Any CPU
+		{40E7F4E8-9E54-419A-885D-30ACAB9B20A5}.Debug|Any CPU.ActiveCfg = Debug|x86
+		{40E7F4E8-9E54-419A-885D-30ACAB9B20A5}.Debug|Any CPU.Build.0 = Debug|x86
+		{40E7F4E8-9E54-419A-885D-30ACAB9B20A5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{40E7F4E8-9E54-419A-885D-30ACAB9B20A5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

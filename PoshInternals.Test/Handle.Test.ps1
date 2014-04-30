@@ -3,7 +3,7 @@
 		$Parent = Split-Path (Split-Path $PSCommandPath -Parent)
 		Import-Module (Join-Path $Parent "PoshInternals.psd1") -Force
 	}
-
+	 
 	TestCase "Finds Locked File" {
 		$TempFile = [IO.Path]::GetTempPath()
 		$TempFile = Join-Path $TempFile "TempFile.txt"

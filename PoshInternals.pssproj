@@ -34,7 +34,9 @@
     <Compile Include="Get-ComputerSID.ps1" />
     <Compile Include="Handle.ps1" />
     <Compile Include="ListDlls.ps1" />
+    <Compile Include="MemoryMappedFile.ps1" />
     <Compile Include="MoveFile.ps1" />
+    <Compile Include="Mutex.ps1" />
     <Compile Include="NamedPipes.ps1" />
     <Compile Include="PendMoves.ps1" />
     <Compile Include="Pinvoke.cs" />
@@ -54,6 +56,8 @@
     <Content Include="HookInject.cs" />
     <Content Include="Hooks.ps1" />
     <Content Include="Interop.ps1" />
+    <Content Include="ListUsers.ps1" />
+    <Content Include="Suspend.ps1" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <Target Name="Build" />

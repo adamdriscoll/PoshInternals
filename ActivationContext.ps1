@@ -103,7 +103,7 @@ function Close-ActivationContext
         )
 
 	Process {
-	    [PoshInternals.Kernel32]::DeactivateActCtx(0, $ActivationContext.Cookie);
+	    [PoshInternals.Kernel32]::DeactivateActCtx(0, $ActivationContext.Cookie) | Out-Null
 	}
 }
 
@@ -125,8 +125,8 @@ function Remove-ActivationContext
         )
 
 	Process {
-		[PoshInternals.Kernel32]::DeactivateActCtx(0, $ActivationContext.Cookie);
-		[PoshInternals.Kernel32]::ReleaseActCtx($ActivationContext.Handle);
+		[PoshInternals.Kernel32]::DeactivateActCtx(0, $ActivationContext.Cookie) | Out-Null 
+		[PoshInternals.Kernel32]::ReleaseActCtx($ActivationContext.Handle) | Out-Null 
 	}
 }
 

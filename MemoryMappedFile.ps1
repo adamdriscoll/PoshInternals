@@ -47,8 +47,7 @@ function Read-MemoryMappedFile
 
 	$StreamReader = New-Object System.IO.StreamReader -ArgumentList $Stream
 
-	$StreamReader.ReadToEnd()
-
+	$StreamReader.ReadToEnd().Replace("`0", "")
 	$StreamReader.Dispose()
 	$Stream.Dispose()
 }

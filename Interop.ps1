@@ -48,3 +48,21 @@ function ConvertTo-String {
 		}
 	}
 }
+
+function Get-Size {
+[CmdletBinding()]
+	param(
+		[Parameter()]
+		[Object]$Object,
+		[Parameter()]
+		[Type]$Type)
+
+	if ($Type)
+	{
+		[System.Runtime.InteropServices.Marshal]::SizeOf([Type]$type)
+	}
+	else
+	{
+		[System.Runtime.InteropServices.Marshal]::SizeOf($Object)
+	}
+}

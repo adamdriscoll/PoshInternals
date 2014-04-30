@@ -175,6 +175,20 @@ namespace PoshInternals
         SystemLookasideInformation = 45
     }
 
+    [Flags]
+    public enum ThreadAccess : int
+    {
+        TERMINATE = (0x0001),
+        SUSPEND_RESUME = (0x0002),
+        GET_CONTEXT = (0x0008),
+        SET_CONTEXT = (0x0010),
+        SET_INFORMATION = (0x0020),
+        QUERY_INFORMATION = (0x0040),
+        SET_THREAD_TOKEN = (0x0080),
+        IMPERSONATE = (0x0100),
+        DIRECT_IMPERSONATION = (0x0200)
+    }
+
     enum TrustProviderFlags
     {
         UseIE4Trust = 1,
@@ -211,6 +225,40 @@ namespace PoshInternals
         Blob,
         Signer,
         Cert
+    }
+
+    public enum WTS_INFO_CLASS
+    {
+        WTSInitialProgram,
+        WTSApplicationName,
+        WTSWorkingDirectory,
+        WTSOEMId,
+        WTSSessionId,
+        WTSUserName,
+        WTSWinStationName,
+        WTSDomainName,
+        WTSConnectState,
+        WTSClientBuildNumber,
+        WTSClientName,
+        WTSClientDirectory,
+        WTSClientProductId,
+        WTSClientHardwareId,
+        WTSClientAddress,
+        WTSClientDisplay,
+        WTSClientProtocolType
+    }
+    public enum WTS_CONNECTSTATE_CLASS
+    {
+        WTSActive,
+        WTSConnected,
+        WTSConnectQuery,
+        WTSShadow,
+        WTSDisconnected,
+        WTSIdle,
+        WTSListen,
+        WTSReset,
+        WTSDown,
+        WTSInit
     }
 
 #endregion //-------------End Enums
@@ -390,6 +438,17 @@ namespace PoshInternals
         }
     }
 
+    [StructLayout(LayoutKind.Sequential)]
+    public struct WTS_SESSION_INFO
+    {
+        public Int32 SessionID;
+
+        [MarshalAs(UnmanagedType.LPStr)]
+        public String pWinStationName;
+
+        public WTS_CONNECTSTATE_CLASS State;
+    }
+
 #endregion //------------End Structures
 
 #region Native Methods
@@ -506,6 +565,13 @@ namespace PoshInternals
 
         [DllImport("kernel32.dll")]
         private static extern int GetProcessId(IntPtr process);
+
+        [DllImport("kernel32.dll")]
+        public static extern IntPtr OpenThread(ThreadAccess dwDesiredAccess, bool bInheritHandle, uint dwThreadId);
+        [DllImport("kernel32.dll")]
+        public static extern uint SuspendThread(IntPtr hThread);
+        [DllImport("kernel32.dll")]
+        public static extern int ResumeThread(IntPtr hThread);
     }
 
     public static class DbgHelp
@@ -582,6 +648,31 @@ namespace PoshInternals
     {
         [DllImport("Wintrust.dll", PreserveSig = true, SetLastError = false)]
         public static extern uint WinVerifyTrust(IntPtr hWnd, IntPtr pgActionID, IntPtr pWinTrustData);
+    }
+
+    public static class Wtsapi32
+    {
+        [DllImport("wtsapi32.dll")]
+        public static extern IntPtr WTSOpenServer([MarshalAs(UnmanagedType.LPStr)] String pServerName);
+
+        [DllImport("wtsapi32.dll")]
+        public static extern void WTSCloseServer(IntPtr hServer);
+
+        [DllImport("wtsapi32.dll")]
+        public static extern bool WTSEnumerateSessions(
+            IntPtr hServer,
+            [MarshalAs(UnmanagedType.U4)] Int32 Reserved,
+            [MarshalAs(UnmanagedType.U4)] Int32 Version,
+            ref IntPtr ppSessionInfo,
+            [MarshalAs(UnmanagedType.U4)] ref Int32 pCount);
+
+        [DllImport("wtsapi32.dll")]
+        public static extern void WTSFreeMemory(IntPtr pMemory);
+
+        [DllImport("Wtsapi32.dll")]
+         public static extern bool WTSQuerySessionInformation(
+            System.IntPtr hServer, int sessionId, WTS_INFO_CLASS wtsInfoClass, out System.IntPtr ppBuffer, out uint pBytesReturned);
+
     }
 
 #endregion //------------End Native Methods
