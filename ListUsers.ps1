@@ -20,7 +20,7 @@
 			if ($retVal)
 			{
 				$dataSize = Get-Size -Type ([PoshInternals.WTS_SESSION_INFO])
-				$currentSession = [int]$SessionInfoPtr
+				$currentSession = [long]$SessionInfoPtr
 				$bytes = 0
 
 				for ($i = 0; $i -lt $sessionCount; $i++)
