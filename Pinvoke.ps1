@@ -7,6 +7,8 @@ using System.IO;
 using System.ComponentModel;
 using System.Runtime.ConstrainedExecution;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
+using System.Diagnostics;
 
 namespace PoshInternals {
     //-------------Enums
@@ -603,73 +605,92 @@ namespace PoshInternals {
 
         private void initTypeAndName()
         {
-            if (_typeAndNameAttempted)
-                return;
-            _typeAndNameAttempted = true;
-
-            IntPtr sourceProcessHandle = IntPtr.Zero;
-            IntPtr handleDuplicate = IntPtr.Zero;
-            try
+            Stopwatch watch = new Stopwatch();
+            Task task = new Task(() =>
             {
-                sourceProcessHandle = Kernel32.OpenProcess(0x40 /* dup_handle */, true, ProcessId);
-
-                // To read info about a handle owned by another process we must duplicate it into ours
-                // For simplicity, current process handles will also get duplicated; remember that process handles cannot be compared for equality
-                if (!Kernel32.DuplicateHandle(sourceProcessHandle, (IntPtr) Handle, Kernel32.GetCurrentProcess(), out handleDuplicate, 0, false, 2 /* same_access */))
+                if (_typeAndNameAttempted)
                     return;
+                _typeAndNameAttempted = true;
 
-                // Query the object type
-                if (_rawTypeMap.ContainsKey(RawType))
-                    _typeStr = _rawTypeMap[RawType];
-                else
+                IntPtr sourceProcessHandle = IntPtr.Zero;
+                IntPtr handleDuplicate = IntPtr.Zero;
+                try
                 {
-                    int length;
-                    NtDll.NtQueryObject(handleDuplicate, OBJECT_INFORMATION_CLASS.ObjectTypeInformation, IntPtr.Zero, 0, out length);
-                    IntPtr ptr = IntPtr.Zero;
-                    try
-                    {
-                        ptr = Marshal.AllocHGlobal(length);
-                        if (NtDll.NtQueryObject(handleDuplicate, OBJECT_INFORMATION_CLASS.ObjectTypeInformation, ptr, length, out length) != NT_STATUS.STATUS_SUCCESS)
-                            return;
-                        _typeStr = Marshal.PtrToStringUni((IntPtr) ((long) ptr + 0x58 + 2 * IntPtr.Size));
-                        _rawTypeMap[RawType] = _typeStr;
-                    }
-                    finally
-                    {
-                        Marshal.FreeHGlobal(ptr);
-                    }
-                }
-                _type = HandleTypeFromString(_typeStr);
+                    sourceProcessHandle = Kernel32.OpenProcess(0x40 /* dup_handle */, true, ProcessId);
 
-                // Query the object name
-                if (_typeStr != null && GrantedAccess != 0x0012019f && GrantedAccess != 0x00120189 && GrantedAccess != 0x120089) // dont query some objects that could get stuck
-                {
-                    int length;
-                    NtDll.NtQueryObject(handleDuplicate, OBJECT_INFORMATION_CLASS.ObjectNameInformation, IntPtr.Zero, 0, out length);
-                    IntPtr ptr = IntPtr.Zero;
-                    try
-                    {
-                        ptr = Marshal.AllocHGlobal(length);
-                        if (NtDll.NtQueryObject(handleDuplicate, OBJECT_INFORMATION_CLASS.ObjectNameInformation, ptr, length, out length) != NT_STATUS.STATUS_SUCCESS)
-                            return;
-                        _name = Marshal.PtrToStringUni((IntPtr) ((long) ptr + 2 * IntPtr.Size));
+                    // To read info about a handle owned by another process we must duplicate it into ours
+                    // For simplicity, current process handles will also get duplicated; remember that process handles cannot be compared for equality
+                    if (!Kernel32.DuplicateHandle(sourceProcessHandle, (IntPtr) Handle, Kernel32.GetCurrentProcess(), out handleDuplicate, 0, false, 2 /* same_access */))
+                        return;
 
-                        if (_typeStr == "File" || _typeStr == "Directory")
+                    // Query the object type
+                    if (_rawTypeMap.ContainsKey(RawType))
+                        _typeStr = _rawTypeMap[RawType];
+                    else
+                    {
+                        int length;
+                        NtDll.NtQueryObject(handleDuplicate, OBJECT_INFORMATION_CLASS.ObjectTypeInformation, IntPtr.Zero, 0, out length);
+                        IntPtr ptr = IntPtr.Zero;
+                        try
                         {
-                            _name = GetRegularFileNameFromDevice(_name);
+                            ptr = Marshal.AllocHGlobal(length);
+                            if (NtDll.NtQueryObject(handleDuplicate, OBJECT_INFORMATION_CLASS.ObjectTypeInformation, ptr, length, out length) != NT_STATUS.STATUS_SUCCESS)
+                                return;
+                            _typeStr = Marshal.PtrToStringUni((IntPtr) ((long) ptr + 0x58 + 2 * IntPtr.Size));
+                            _rawTypeMap[RawType] = _typeStr;
+                        }
+                        finally
+                        {
+                            Marshal.FreeHGlobal(ptr);
                         }
                     }
-                    finally
+                    _type = HandleTypeFromString(_typeStr);
+
+                    // Query the object name
+                    if (_typeStr != null && GrantedAccess != 0x0012019f && GrantedAccess != 0x00120189 && GrantedAccess != 0x120089) // dont query some objects that could get stuck
                     {
-                        Marshal.FreeHGlobal(ptr);
+                        int length;
+                        NtDll.NtQueryObject(handleDuplicate, OBJECT_INFORMATION_CLASS.ObjectNameInformation, IntPtr.Zero, 0, out length);
+                        IntPtr ptr = IntPtr.Zero;
+                        try
+                        {
+                            ptr = Marshal.AllocHGlobal(length);
+                            if (NtDll.NtQueryObject(handleDuplicate, OBJECT_INFORMATION_CLASS.ObjectNameInformation, ptr, length, out length) != NT_STATUS.STATUS_SUCCESS)
+                                return;
+                            _name = Marshal.PtrToStringUni((IntPtr) ((long) ptr + 2 * IntPtr.Size));
+
+                            if (_typeStr == "File" || _typeStr == "Directory")
+                            {
+                                _name = GetRegularFileNameFromDevice(_name);
+                            }
+                        }
+                        finally
+                        {
+                            Marshal.FreeHGlobal(ptr);
+                        }
                     }
                 }
-            }
-            finally
+                finally
+                {
+                    Kernel32.CloseHandle(sourceProcessHandle);
+                    if (handleDuplicate != IntPtr.Zero)
+                        Kernel32.CloseHandle(handleDuplicate);
+                }
+            });
+            task.Start();
+            watch.Start();
+            while (!task.IsCompleted)
             {
-                Kernel32.CloseHandle(sourceProcessHandle);
-                if (handleDuplicate != IntPtr.Zero)
-                    Kernel32.CloseHandle(handleDuplicate);
+              if (watch.ElapsedMilliseconds == 50)
+              {
+                if (_typeStr == null)
+                {
+                  _type = HandleType.Unknown;
+                  _typeStr = string.Empty;
+                }
+                _name = string.Empty;
+                break;
+              }
             }
         }
         
