@@ -1,10 +1,7 @@
-Describe "MutexTest" {
-	BeforeAll {
-		$Parent = Split-Path (Split-Path $PSCommandPath -Parent)
-		Import-Module (Join-Path $Parent "PoshInternals.psd1") -Force
-	}
+Describe "Mutex" {
+	. (Join-Path $PSScriptRoot 'InitializeTest.ps1')
 
-	Context "Lock Mutex" {
+	Context "Enter-Mutex" {
 		$Mutex = New-Mutex -Name "MyMutex" -InitialOwner $true
 
 		try {

@@ -1,4 +1,4 @@
-$Global:Mutex
+$Global:Mutex = $null
 
 function New-Mutex
 {

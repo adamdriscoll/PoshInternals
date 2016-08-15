@@ -22,7 +22,7 @@ function Set-Hook {
 	$Assembly = [System.Reflection.Assembly]::LoadWithPartialName("PoshHook");
 	if ($Assembly  -eq $null)
 	{
-		throw new-object System.Exception -ArgumentList "PoshHook is not initialized. Run Initialize-PoshHook."
+		throw new-object System.Exception -ArgumentList "PoshHook is not initialized. Run Register-PoshHook ."
 	}
 
 	function FixupScriptBlock
@@ -297,6 +297,11 @@ function Remove-Hook
 
 function Register-PoshHook 
 {
+	if (-not (Test-Elevated))
+	{
+		throw "This command requires elevation."
+	}
+
 	$Assembly = [System.Reflection.Assembly]::LoadWithPartialName("PoshHook")
 	if ($Assembly -ne $null)
 	{	
@@ -307,22 +312,23 @@ function Register-PoshHook
 	Add-Type -AssemblyName System.EnterpriseServices 
 	$Publish = New-Object System.EnterpriseServices.Internal.Publish
 
-	$EasyHookPath = (Join-Path $ScriptDirectory "EasyHook\EasyHook.dll")
+	$EasyHookPath = (Join-Path $PSScriptRoot "EasyHook\EasyHook.dll")
 	$Publish.GacInstall($EasyHookPath)
 
 	$EasyHook = [System.Reflection.Assembly]::LoadWithPartialName("EasyHook")
 
 	$HookPath = (Join-Path ([IO.Path]::GetTempPath()) "PoshHook.dll")
 	$CompilerParameters = New-Object System.CodeDom.Compiler.CompilerParameters
-	$CompilerParameters.CompilerOptions = "/keyfile:`"$((Join-Path $ScriptDirectory "PoshInternals.snk"))`""
+	$CompilerParameters.CompilerOptions = "/keyfile:`"$((Join-Path $PSScriptRoot "PoshInternals.snk"))`""
 	$CompilerParameters.ReferencedAssemblies.Add($EasyHook.Location) | Out-Null
 	$CompilerParameters.ReferencedAssemblies.Add([System.Management.Automation.Cmdlet].Assembly.Location) | Out-Null
 	$CompilerParameters.ReferencedAssemblies.Add("System.dll") | Out-Null
 	$CompilerParameters.ReferencedAssemblies.Add("System.Core.dll") | Out-Null
 	$CompilerParameters.ReferencedAssemblies.Add("System.Runtime.Remoting.dll") | Out-Null
+	$CompilerParameters.ReferencedAssemblies.Add("EasyHook.dll") | Out-Null
 	$CompilerParameters.OutputAssembly = $HookPath
 
-	Add-Type -Path (Join-Path $ScriptDirectory "HookInject.cs") -CompilerParameters $CompilerParameters | Out-Null 
+	Add-Type -Path (Join-Path $PSScriptRoot "HookInject.cs") -CompilerParameters $CompilerParameters | Out-Null 
 	
 	$Publish.GacInstall($HookPath)
 }
@@ -343,4 +349,10 @@ function Unregister-PoshHook {
 		$Publish.GacRemove($Assembly.Location)
 	}
 	
+}
+
+function Test-Elevated {
+	$identity = [System.Security.Principal.WindowsIdentity]::GetCurrent()
+	$principal = New-Object  System.Security.Principal.WindowsPrincipal -ArgumentList $identity
+	$principal.IsInRole([System.Security.Principal.WindowsBuiltInRole]::Administrator)
 }

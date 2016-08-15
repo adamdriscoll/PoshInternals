@@ -1,32 +1,37 @@
-﻿Describe "HandleTests" {
-	BeforeAll {
-		$Parent = Split-Path (Split-Path $PSCommandPath -Parent)
-		Import-Module (Join-Path $Parent "PoshInternals.psd1") -Force
-	}
+﻿Describe "Get-Handle" {
+	. (Join-Path $PSScriptRoot 'InitializeTest.ps1')
 	 
-	Context "Finds Locked File" {
-		$TempFile = [IO.Path]::GetTempPath()
-		$TempFile = Join-Path $TempFile "TempFile.txt"
+	Context "File is locked" {
+		$TempFile = [IO.Path]::GetTempFileName()
 		$File = [IO.File]::Open($TempFile, 'OpenOrCreate', 'Write', 'None')
 
-		$Handle = Get-Handle -Name $TempFile
+		try 
+		{
+			$Handle = Get-Handle -Name $TempFile
+		}
+		finally 
+		{
+			$File.Close()
+			$File.Dispose()
+		}
+		
+		sleep 10
 
-		$File.Close()
-		$File.Dispose()
+		remove-item $TempFile -Force
 
-		sleep 1
+		It "Finds open handle for file" {
+			$Handle | Should not be $null
+		}
 
-		remove-item $TempFile
-
-		$Handle | Should not be $null
+		
 	}
 
-	Context "HandleUtil.GetHandles" {
-		Measure-Command {  [PoshInternals.HandleUtil]::GetHandles() | Select Name,Type }
+	Context "HandleUtil.GetHandles"  {
+		#Measure-Command {  [PoshInternals.HandleUtil]::GetHandles() | Select Name,Type }
 	}
 
 	Context "Finds File" {
-		Measure-Command { Get-Handle }
+		#Measure-Command { Get-Handle }
 	}
 
 

@@ -1,10 +1,7 @@
-Describe "ProcdumpTests" {
-	BeforeAll {
-		$Parent = Split-Path (Split-Path $PSCommandPath -Parent)
-		Import-Module (Join-Path $Parent "PoshInternals.psd1") -Force
-	}
+Describe "Out-MiniDump" {
+	. (Join-Path $PSScriptRoot 'InitializeTest.ps1')
 
-	Context "DumpNotepad" {
+	Context "notepad running and a dump is collected" {
 		$TempPath = [System.IO.Path]::GetTempPath()
 
 		$NotepadDmp = Join-Path $TempPath "Notepad.dmp"
@@ -14,6 +11,9 @@ Describe "ProcdumpTests" {
 
 		$Notepad.Kill()
 
-		$NotepadDmp | Should exist
+		It "Should exist" {
+			$NotepadDmp | Should exist
+		}
+		
 	}
 }

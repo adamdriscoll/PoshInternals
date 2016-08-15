@@ -5,3 +5,4 @@
 *.suo
 PoshInternals.psd1
 /PoshInternals.pssproj.user
+/PoshExecSvr/obj/Debug

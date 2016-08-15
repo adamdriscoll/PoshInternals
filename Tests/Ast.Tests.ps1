@@ -1,7 +1,5 @@
 Describe "AstTests" {
-	BeforeAll {
-		. (Join-Path $PSScriptRoot 'InitializeTest.ps1')
-	}
+	. (Join-Path $PSScriptRoot 'InitializeTest.ps1')
 
 	Context "RemoveExtentTest" {
 		$tokens = $null 

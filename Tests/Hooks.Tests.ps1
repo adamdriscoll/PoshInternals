@@ -1,8 +1,16 @@
 Describe "HooksTest" {
-	BeforeAll {
-		$Parent = Split-Path (Split-Path $PSCommandPath -Parent)
-		Import-Module (Join-Path $Parent "PoshInternals.psd1") -Force
+	. (Join-Path $PSScriptRoot 'InitializeTest.ps1')
+
+	try 
+	{
+		Register-PoshHook 
 	}
+	catch 
+	{
+		Write-Warning $_
+		return
+	}
+	
 
 	Context "LocalHookTest" {
 		Set-Hook -Dll "Kernel32.dll" -ReturnType "bool" -EntryPoint "Beep" -Verbose -ScriptBlock {

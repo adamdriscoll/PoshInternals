@@ -1,16 +1,16 @@
-Describe "InteropTest" {
-	BeforeAll {
-		$Parent = Split-Path (Split-Path $PSCommandPath -Parent)
-		Import-Module (Join-Path $Parent "PoshInternals.psd1") -Force
-	}
+Describe "Interop" {
+	. (Join-Path $PSScriptRoot 'InitializeTest.ps1')
 
-	Context "ConvertToObjectTest" {
+	Context "ConvertTo-Object" {
 		$time = New-Object System.Runtime.InteropServices.ComTypes.FILETIME
 		$time.dwLowDateTime = 100
 
 		$ptr = ConvertTo-Pointer $Time
 		$time2 = ConvertTo-Object -Ptr $ptr -Type $Time.GetType()
 
-		$time2.dwLowDateTime | Should be 100
+		It "should marshal correctly" {
+			$time2.dwLowDateTime | Should be 100
+		}
+		
 	}
 }

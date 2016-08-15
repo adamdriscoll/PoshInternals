@@ -1,8 +1,5 @@
-Describe "MemoryMappedFileTest" {
-	BeforeAll {
-		$Parent = Split-Path (Split-Path $PSCommandPath -Parent)
-		Import-Module (Join-Path $Parent "PoshInternals.psd1") -Force
-	}
+Describe "MemoryMappFile" {
+	. (Join-Path $PSScriptRoot 'InitializeTest.ps1')
 
 	Context "ReadWriteFromMemoryMappedFile" {
 		$MemoryMappedFile = New-MemoryMappedFile -Name "TestFile" -Size 1kb
@@ -16,6 +13,9 @@ Describe "MemoryMappedFileTest" {
 		Remove-MemoryMappedFile -MemoryMappedFile $MemoryMappedFile
 		Remove-MemoryMappedFile -MemoryMappedFile $OtherMemoryMappedFile
 
-		$TestData | Should be "This is a test"
+		It "should contain the correct data" {
+			$TestData | Should be "This is a test"
+		}
+		
 	}
 }

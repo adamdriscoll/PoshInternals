@@ -4,4 +4,4 @@ if ($ENV:APPVEYOR -ne 'true')
 	. (Join-Path $PSScriptRoot '..\Build\NewManifest.ps1')
 }
 		
-Import-Module (Join-Path $PSScriptRoot "..\PoshInternals.psd1") -Force
+Import-Module (Join-Path $PSScriptRoot "..\PoshInternals.psd1") -Force -Global -ErrorAction Stop
