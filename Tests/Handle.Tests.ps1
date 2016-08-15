@@ -1,4 +1,4 @@
-﻿Describe "Get-Handle" {
+﻿Describe "Get-Handle"  {
 	. (Join-Path $PSScriptRoot 'InitializeTest.ps1')
 	 
 	Context "File is locked" {

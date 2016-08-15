@@ -19,24 +19,12 @@ function Enter-Mutex
 {
 	[CmdletBinding()]
 	param(
-	[Parameter(ValueFromPipeline=$true, Mandatory, ParmeterSetName='Mutex')]
-	[System.Threading.Mutex]$Mutex,
-	[Parameter(ValueFromPipeline=$true, Mandatory, ParmeterSetName='Name')]
-	[System.Threading.Mutex]$Name
+	[Parameter(ValueFromPipeline=$true, Mandatory)]
+	[System.Threading.Mutex]$Mutex
 	)
 
 	Process {
-		if ($PSCmdlet.ParameterSetName -eq 'Mutex')
-		{
-			$Mutex.WaitOne()
-		}
-		elseif ($PSCmdlet.ParameterSetName -eq 'Name')
-		{
-
-		}
-
-
-		
+		$Mutex.WaitOne()
 	}
 }
 

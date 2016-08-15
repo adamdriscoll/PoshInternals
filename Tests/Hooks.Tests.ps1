@@ -1,31 +1,23 @@
 Describe "HooksTest" {
 	. (Join-Path $PSScriptRoot 'InitializeTest.ps1')
 
-	try 
-	{
-		Register-PoshHook 
-	}
-	catch 
-	{
-		Write-Warning $_
-		return
-	}
-	
+	Register-PoshHook 
 
-	Context "LocalHookTest" {
-		Set-Hook -Dll "Kernel32.dll" -ReturnType "bool" -EntryPoint "Beep" -Verbose -ScriptBlock {
+	Context "Local hooked beep set to return false" {
+		Set-Hook -Dll "Kernel32.dll" -ReturnType "bool" -EntryPoint "Beep" -ScriptBlock {
 			param([int]$Freq, [int]$Duration)
-			Write-Host "Frequency was ($Freq) and duration was ($Duration)"
-			return $true
+			throw "Exception"
 		}
 
-		[Console]::Beep(1000, 1000)
-
+		It "should return false" {
+			[Console]::Beep(1000, 1000) | Should be $false
+		}
+		
 		Get-Hook | Remove-Hook
 	}
 
 	Context "RemoteHookTest" {
-		$Posh = Start-Process PowerShell -ArgumentList " '& [Console]::Beep()'" -PassThru
+		$Posh = Start-Process PowerShell -ArgumentList " -noexit '& [Console]::Beep()'" -PassThru
 
 		Set-Hook -ProcessId $Posh.ProcessId -Dll "Kernel32.dll" -ReturnType "bool" -EntryPoint "Beep" -ScriptBlock {
 			param([int]$Freq, [int]$Duration)

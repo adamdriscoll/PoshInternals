@@ -7,8 +7,6 @@ Describe "Mutex" {
 		try {
 			Enter-Mutex $Mutex 
 
-			Write-Host 'Ok'
-
 			Exit-Mutex $Mutex 
 		}
 		finally {

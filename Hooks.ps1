@@ -325,7 +325,6 @@ function Register-PoshHook
 	$CompilerParameters.ReferencedAssemblies.Add("System.dll") | Out-Null
 	$CompilerParameters.ReferencedAssemblies.Add("System.Core.dll") | Out-Null
 	$CompilerParameters.ReferencedAssemblies.Add("System.Runtime.Remoting.dll") | Out-Null
-	$CompilerParameters.ReferencedAssemblies.Add("EasyHook.dll") | Out-Null
 	$CompilerParameters.OutputAssembly = $HookPath
 
 	Add-Type -Path (Join-Path $PSScriptRoot "HookInject.cs") -CompilerParameters $CompilerParameters | Out-Null 

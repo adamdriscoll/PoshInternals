@@ -57,6 +57,7 @@ $NestedModules = @(
 				  ".\Interop.ps1",
                   ".\ListDlls.ps1", 
 				  '.\ListUsers.ps1',
+				  ".\Mutex.ps1",
                   ".\MoveFile.ps1", 
 				  ".\MemoryMappedFile.ps1", 
                   ".\NamedPipes.ps1",
