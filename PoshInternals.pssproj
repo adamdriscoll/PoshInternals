@@ -38,6 +38,7 @@
     <Compile Include="EasyHook\EasyHook64.lib" />
     <Compile Include="EasyHook\EasyHook64Svc.exe" />
     <Compile Include="EasyHook\EasyHookTestCert.cer" />
+    <Compile Include="README.md" />
     <Compile Include="Tests\InitializeTest.ps1" />
     <Compile Include="Build\InvokeTests.ps1" />
     <Compile Include="Build\NewManifest.ps1" />
