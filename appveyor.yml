@@ -1,0 +1,21 @@
+clone_folder: C:\PoshInternals
+
+image: WMF 5
+
+install:
+  - cinst pester
+
+version: 1.0.{build}
+
+build_script:
+- ps: .\Build\NewManifest.ps1
+
+test_script:
+- ps: .\Build\InvokeTests.ps1
+
+deploy_script:
+- ps: .\Build\PublishModule.ps1
+
+environment:
+  ApiKey:
+    secure: jv+jb1IJtjQxAxQigSve12KwVeuu7evZk7Ot5PKapLebDyl2LHsQGcqZFQ8VeDxV

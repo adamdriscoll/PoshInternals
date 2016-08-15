@@ -1,0 +1,91 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>6CAFC0C6-A428-4d30-A9F9-700E829FEA51</ProjectGuid>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>MyApplication</RootNamespace>
+    <AssemblyName>MyApplication</AssemblyName>
+    <Name>PoshInternals</Name>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include=".gitignore" />
+    <Compile Include="ActivationContext.ps1" />
+    <Compile Include="BlueScreen.ps1" />
+    <Compile Include="EasyHook\EasyHook.dll" />
+    <Compile Include="EasyHook\easyhook.h" />
+    <Compile Include="EasyHook\EasyHook32.dll" />
+    <Compile Include="EasyHook\EasyHook32Svc.exe" />
+    <Compile Include="EasyHook\EasyHook64.dll" />
+    <Compile Include="EasyHook\EasyHook64.lib" />
+    <Compile Include="EasyHook\EasyHook64Svc.exe" />
+    <Compile Include="EasyHook\EasyHookTestCert.cer" />
+    <Compile Include="README.md" />
+    <Compile Include="Tests\InitializeTest.ps1" />
+    <Compile Include="Build\InvokeTests.ps1" />
+    <Compile Include="Build\NewManifest.ps1" />
+    <Compile Include="Build\PublishModule.ps1" />
+    <Compile Include="Desktops.ps1" />
+    <Compile Include="FileSystemCache.ps1" />
+    <Compile Include="Get-ComputerSID.ps1" />
+    <Compile Include="Handle.ps1" />
+    <Compile Include="ListDlls.ps1" />
+    <Compile Include="MemoryMappedFile.ps1" />
+    <Compile Include="MoveFile.ps1" />
+    <Compile Include="Mutex.ps1" />
+    <Compile Include="NamedPipes.ps1" />
+    <Compile Include="PendMoves.ps1" />
+    <Compile Include="Pinvoke.cs" />
+    <Compile Include="Pinvoke.ps1" />
+    <Compile Include="PipeList.ps1" />
+    <Compile Include="PoshExec.cs" />
+    <Compile Include="PoshExec.ps1" />
+    <Compile Include="Privilege.ps1" />
+    <Compile Include="Procdump.ps1" />
+    <Compile Include="ProcessLogger.ps1" />
+    <Compile Include="ScreenSaver.ps1" />
+    <Compile Include="Set-WorkingSetToMin.ps1" />
+    <Compile Include="Tests\Ast.Tests.ps1" />
+    <Compile Include="Tests\Handle.Tests.ps1" />
+    <Compile Include="Tests\Hooks.Tests.ps1" />
+    <Compile Include="Tests\Interop.Tests.ps1" />
+    <Compile Include="Tests\MemoryMappedFile.Tests.ps1" />
+    <Compile Include="Tests\Mutex.Tests.ps1" />
+    <Compile Include="Tests\PoshExec.Tests.ps1" />
+    <Compile Include="Tests\Procdump.Tests.ps1" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="appveyor.yml" />
+    <Content Include="Ast.ps1" />
+    <Content Include="HookInject.cs" />
+    <Content Include="Hooks.ps1" />
+    <Content Include="Interop.ps1" />
+    <Content Include="ListUsers.ps1" />
+    <Content Include="Suspend.ps1" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Build\" />
+    <Folder Include="EasyHook\" />
+    <Folder Include="Tests\" />
+  </ItemGroup>
+  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
+  <Target Name="Build" />
+</Project>

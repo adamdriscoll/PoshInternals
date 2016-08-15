@@ -26,7 +26,7 @@ function Install-BlueScreenSaver
             using (var runSpace = RunspaceFactory.CreateRunspace())
             {
                 runSpace.Open();
-                using (var pipeline = runSpace.CreatePipeline("C:\\windows\\syswow64\\ScreenSaver.ps1"))
+                using (var pipeline = runSpace.CreatePipeline("C:\\windows\\System32\\ScreenSaver.ps1"))
                 {
                     pipeline.Invoke();
                 }
@@ -37,25 +37,41 @@ function Install-BlueScreenSaver
     '
 
     $tmpFile = [IO.Path]::GetTempFileName() + ".cs"
+	$tempDir = [IO.Path]::GetTempPath()
+
+	$ScreenSaverScript = Join-Path (Split-Path $PSCommandPath)  "ScreenSaver.ps1"
+
+	$bsodPath = Join-Path $tempDir "bluescreen.exe"
 
     Out-File -FilePath $tmpFile -InputObject $CSharp
 
-    Start-Process -FilePath C:\windows\Microsoft.NET\Framework\v4.0.30319\csc.exe -ArgumentList "/out:bluescreen.exe","/r:`"C:\Windows\Microsoft.NET\assembly\GAC_MSIL\System.Management.Automation\v4.0_3.0.0.0__31bf3856ad364e35\System.Management.Automation.dll`"",$tmpFile -Wait
+    Start-Process -FilePath C:\windows\Microsoft.NET\Framework\v4.0.30319\csc.exe -ArgumentList "/out:$bsodPath","/r:`"C:\Program Files (x86)\Reference Assemblies\Microsoft\WindowsPowerShell\3.0\System.Management.Automation.dll`"",$tmpFile -Wait -NoNewWindow 
+	
+	1..10 | % {
+		Start-Sleep -Milliseconds  500
+		if (Test-Path $bsodPath)
+		{
+			break
+		}
+	}
 
-    Rename-Item "bluescreen.exe" "bluescreen.scr"
+	if (-not (Test-Path $bsodPath))
+	{
+		throw new-Object -TypeName System.Exception -ArgumentList "Failed to compile bluescreen.scr"
+	}
+
+    Rename-Item $bsodPath "bluescreen.scr"
 
     $System32 = Join-Path $env:SystemRoot "System32"
 
-    Copy-Item "bluescreen.scr" (Join-Path $System32 "bluescreen.scr")
-    Copy-Item "ScreenSaver.ps1" (Join-Path $System32 "ScreenSaver.ps1")
+    Copy-Item $bsodPath (Join-Path $System32 "bluescreen.scr")
+    Copy-Item $ScreenSaverScript (Join-Path $System32 "ScreenSaver.ps1")
 
     if ($env:PROCESSOR_ARCHITECTURE -eq "AMD64")
     {
         $System32 = Join-Path $env:SystemRoot "SysWow64"
-
-        Copy-Item "bluescreen.scr" (Join-Path $System32 "bluescreen.scr")
-        Copy-Item "ScreenSaver.ps1" (Join-Path $System32 "ScreenSaver.ps1")
+        Copy-Item $bsodPath (Join-Path $System32 "bluescreen.scr")
     }
 
-    Remove-Item "bluescreen.scr"
+    Remove-Item $bsodPath
 }

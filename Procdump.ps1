@@ -19,7 +19,10 @@ function Out-MiniDump
     [string]$Path,
     # Whether to take a full memory dump
     [Parameter()]
-    [Switch]$Full
+    [Switch]$Full,
+	# Force the overwrite of an existing dump
+    [Parameter()]
+    [Switch]$Force
     )
 
     Process
@@ -27,8 +30,17 @@ function Out-MiniDump
         if ([String]::IsNullOrEmpty($Path))
         {
             $MS = [DateTime]::Now.Millisecond
-            $Path = Join-Path ([Environment]::CurrentDirectory) "$($Process.ID)_$MS.dmp"
+            $Path = Join-Path (Get-Location) "$($Process.ID)_$MS.dmp"
         }
+		
+		if (-not $Force -and (Test-Path $Path))
+		{
+			throw "$Path already exists. Use the -Force parameter to overwrite and existing dmp file."
+		}
+		elseif ($Force -and (Test-Path $Path))
+		{
+			Remove-Item $Path -Force | Out-Null
+		}
 
         if ($Full)
         {
@@ -39,18 +51,30 @@ function Out-MiniDump
             $DumpType = [PoshInternals.MINIDUMP_TYPE]::MiniDumpNormal
         }
 
-        $FileName = [PoshInternals.Kernel32]::CreateFile($Path, [System.IO.FileAccess]::Write, [System.IO.FileShare]::None, [IntPtr]::Zero, [System.IO.FileMode]::CreateNew, 0, [IntPtr]::Zero)
-        if ($FileName.IsInvalid)
+		$FileStream = $null
+		try 
+		{
+			Write-Verbose "Dump File Path [$Path]"
+			$FileStream = New-Object -TypeName System.IO.FileStream -ArgumentList $Path,'CreateNew','Write','None'
+		}
+		catch 
+		{
+			Write-Error $_
+			return
+		}
+        
+        if (-not $FileStream)
         {
             throw New-Object System.ComponentModel.Win32Exception
         }
 
-        if (-not [PoshInternals.DbgHlp]::MiniDumpWriteDump($Process.Handle, $Process.Id, $FileName, $DumpType, [IntPtr]::Zero, [IntPtr]::Zero, [IntPtr]::Zero))
+        if (-not [PoshInternals.DbgHelp]::MiniDumpWriteDump($Process.Handle, $Process.Id, $FileStream.Handle, $DumpType, [IntPtr]::Zero, [IntPtr]::Zero, [IntPtr]::Zero))
         {
+			$FileStream.Dispose()
             throw New-Object System.ComponentModel.Win32Exception
         }
         
-
+		$FileStream.Dispose()
     }
 }
 

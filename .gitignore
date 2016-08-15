@@ -1,0 +1,8 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+*.suo
+PoshInternals.psd1
+/PoshInternals.pssproj.user
+/PoshExecSvr/obj/Debug

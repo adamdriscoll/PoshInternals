@@ -1,22 +1,29 @@
-﻿<#
+﻿$Script:ActivationContexts = @()
+
+<#
 .Synopsis
-   Enters a Windows Activation Context. 
+   Creates a Windows Activation Context. 
 .DESCRIPTION
-   Enters a Windows Activation Context. This cmdlet accepts an activation manifest
-   that allows for registry free COM activation. 
+   Creates a Windows Activation Context. This cmdlet can optionally open
+   the activation context.
 .EXAMPLE
-   Enter-ActivationContext -Manifest C:\IE.Manifest
+   Create-ActivationContext -Manifest E:\IE.EXE.Manifest
+.EXAMPLE
+   Create-ActivationContext -Open -Manifest E:\IE.EXE.Manifest
 #>
-function Enter-ActivationContext
+function New-ActivationContext 
 {
-    # The manifest to use for registry free COM activation
     [CmdletBinding()]
     param(
-        [Parameter(Manadatory)]
-        $manifest
+		# The manifest to use for registry free COM activation
+        [Parameter(Mandatory)]
+        $manifest,
+		[Parameter()]
+		#Opens the context.
+		[Switch]$Open
         )
-
-    End 
+		    
+	End 
     {
         if (-not (Test-Path $Manifest))
         {
@@ -24,33 +31,102 @@ function Enter-ActivationContext
             return
         }
 
-        if ($global:ActivationContext  -ne $null)
+		[IntPtr]$ActivationContext = [IntPtr]::Zero
+
+        $actCtx = New-Object PoshInternals.ACTCTX
+        $actCtx.cbSize = [System.Runtime.InteropServices.Marshal]::SizeOf([Type]$actCtx.GetType())
+        $actCtx.dwFlags = 0
+        $actCtx.lpSource = $manifest
+        $actCtx.lpResourceName = $null
+
+        $ActivationContext = [PoshInternals.Kernel32]::CreateActCtx([ref]$actCtx)
+        if ($ActivationContext -eq [IntPtr]-1)
         {
-            Write-Error "Already in an activation context."
-            return
+            throw new-object System.ComponentModel.Win32Exception
         }
 
-        $global:ActivationContext = New-Object PoshInternals.ActivationContext
-        $global:ActivationContext.CreateAndActivate($manifest)
+		$ActivationContextObject = @{Handle=$ActivationContext;Cookie=$cookie;Manifest=$Manifest}
+
+		if ($Open)
+		{
+			Open-ActivationContext -ActivationContext $ActivationContextObject
+		}
+
+		[PSCustomObject]$ActivationContextObject
     }
 }
 
 <#
 .Synopsis
-   Exits a Windows activation context. 
+   Opens a Windows Activation Context. 
 .DESCRIPTION
-   Exits a Windows activation context that was opened by Enter-ActivationContext. 
+   Opens a Windows Activation Context. This cmdlet accepts a context created by
+   New-ActivationContext.
 .EXAMPLE
-   Exit-ActivationContext
+   Open-ActivationContext -ActivationContext $Context
 #>
-function Exit-ActivationContext
+function Open-ActivationContext
 {
-    if ($global:ActivationContext -eq $null)
-    {
-        Write-Warning "Not currently within an activation context."
-        return
-    }
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory, ValueFromPipeline=$true)]
+        [PSCustomObject]$ActivationContext
+        )
 
-    $global:ActivationContext.DeactivateAndFree()
+    Process 
+    {
+		[Int]$Cookie = 0
+
+        if (-not ([PoshInternals.Kernel32]::ActivateActCtx($ActivationContext.Handle, [ref]$Cookie)))
+        {
+            Write-Error (new-object System.ComponentModel.Win32Exception)
+        }
+
+		$ActivationContext.Cookie = $Cookie
+    }
+}
+
+<#
+.Synopsis
+   Closes a Windows activation context. 
+.DESCRIPTION
+   Closes a Windows activation context that was opened by Enter-ActivationContext. 
+.EXAMPLE
+   Close-ActivationContext
+#>
+function Close-ActivationContext
+{
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory, ValueFromPipeline=$true)]
+        [PSCustomObject]$ActivationContext
+        )
+
+	Process {
+	    [PoshInternals.Kernel32]::DeactivateActCtx(0, $ActivationContext.Cookie) | Out-Null
+	}
+}
+
+<#
+.Synopsis
+   Removes an activation context.
+.DESCRIPTION
+   Removes an activation context that was created by New-ActivationContext. Open-ActivationContext will no longer 
+   work for the removed activation context.
+.EXAMPLE
+   Remove-ActivationContext -ActicationContext $Context
+#>
+function Remove-ActivationContext 
+{
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory, ValueFromPipeline=$true)]
+        [PSCustomObject]$ActivationContext
+        )
+
+	Process {
+		[PoshInternals.Kernel32]::DeactivateActCtx(0, $ActivationContext.Cookie) | Out-Null 
+		[PoshInternals.Kernel32]::ReleaseActCtx($ActivationContext.Handle) | Out-Null 
+	}
 }
 
