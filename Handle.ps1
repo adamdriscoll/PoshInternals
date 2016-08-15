@@ -292,6 +292,12 @@ function Get-AllHandles
 			$handleCount = [Runtime.InteropServices.Marshal]::ReadInt64($ptr)
 		}
 
+		if ($handleCount -gt [Int32]::MaxValue)
+		{
+			Write-Error "Handle count too large!"
+			continue
+		}
+
 		$She = New-Object -TypeName PoshInternals.SystemHandleEntry
         $size = [Runtime.InteropServices.Marshal]::SizeOf($She)
 
