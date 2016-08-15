@@ -29,6 +29,9 @@
   <ItemGroup>
     <Compile Include="ActivationContext.ps1" />
     <Compile Include="BlueScreen.ps1" />
+    <Compile Include="Build\InvokeTests.ps1" />
+    <Compile Include="Build\NewManifest.ps1" />
+    <Compile Include="Build\PublishModule.ps1" />
     <Compile Include="Desktops.ps1" />
     <Compile Include="FileSystemCache.ps1" />
     <Compile Include="Get-ComputerSID.ps1" />
@@ -44,20 +47,32 @@
     <Compile Include="PipeList.ps1" />
     <Compile Include="PoshExec.cs" />
     <Compile Include="PoshExec.ps1" />
-    <Compile Include="PoshInternals.psd1" />
     <Compile Include="Privilege.ps1" />
     <Compile Include="Procdump.ps1" />
     <Compile Include="ProcessLogger.ps1" />
     <Compile Include="ScreenSaver.ps1" />
     <Compile Include="Set-WorkingSetToMin.ps1" />
+    <Compile Include="Tests\Ast.Test.ps1" />
+    <Compile Include="Tests\Handle.Test.ps1" />
+    <Compile Include="Tests\Hooks.Test.ps1" />
+    <Compile Include="Tests\InteropTest.ps1" />
+    <Compile Include="Tests\MemoryMappedFile.Test.ps1" />
+    <Compile Include="Tests\Mutex.Test.ps1" />
+    <Compile Include="Tests\PoshExec.Test.ps1" />
+    <Compile Include="Tests\Procdump.Test.ps1" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="appveyor.yml" />
     <Content Include="Ast.ps1" />
     <Content Include="HookInject.cs" />
     <Content Include="Hooks.ps1" />
     <Content Include="Interop.ps1" />
     <Content Include="ListUsers.ps1" />
     <Content Include="Suspend.ps1" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Build\" />
+    <Folder Include="Tests\" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <Target Name="Build" />
