@@ -27,8 +27,17 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include=".gitignore" />
     <Compile Include="ActivationContext.ps1" />
     <Compile Include="BlueScreen.ps1" />
+    <Compile Include="EasyHook\EasyHook.dll" />
+    <Compile Include="EasyHook\easyhook.h" />
+    <Compile Include="EasyHook\EasyHook32.dll" />
+    <Compile Include="EasyHook\EasyHook32Svc.exe" />
+    <Compile Include="EasyHook\EasyHook64.dll" />
+    <Compile Include="EasyHook\EasyHook64.lib" />
+    <Compile Include="EasyHook\EasyHook64Svc.exe" />
+    <Compile Include="EasyHook\EasyHookTestCert.cer" />
     <Compile Include="Tests\InitializeTest.ps1" />
     <Compile Include="Build\InvokeTests.ps1" />
     <Compile Include="Build\NewManifest.ps1" />
@@ -73,6 +82,7 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Build\" />
+    <Folder Include="EasyHook\" />
     <Folder Include="Tests\" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
