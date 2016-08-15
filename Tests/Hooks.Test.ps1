@@ -1,10 +1,10 @@
-TestFixture "HooksTest" {
-	TestSetup {
+Describe "HooksTest" {
+	BeforeAll {
 		$Parent = Split-Path (Split-Path $PSCommandPath -Parent)
 		Import-Module (Join-Path $Parent "PoshInternals.psd1") -Force
 	}
 
-	TestCase "LocalHookTest" {
+	Context "LocalHookTest" {
 		Set-Hook -Dll "Kernel32.dll" -ReturnType "bool" -EntryPoint "Beep" -Verbose -ScriptBlock {
 			param([int]$Freq, [int]$Duration)
 			Write-Host "Frequency was ($Freq) and duration was ($Duration)"
@@ -16,7 +16,7 @@ TestFixture "HooksTest" {
 		Get-Hook | Remove-Hook
 	}
 
-	TestCase "RemoteHookTest" {
+	Context "RemoteHookTest" {
 		$Posh = Start-Process PowerShell -ArgumentList " '& [Console]::Beep()'" -PassThru
 
 		Set-Hook -ProcessId $Posh.ProcessId -Dll "Kernel32.dll" -ReturnType "bool" -EntryPoint "Beep" -ScriptBlock {

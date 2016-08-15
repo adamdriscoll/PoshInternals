@@ -1,10 +1,10 @@
-TestFixture "ProcdumpTests" {
-	TestSetup {
+Describe "ProcdumpTests" {
+	BeforeAll {
 		$Parent = Split-Path (Split-Path $PSCommandPath -Parent)
 		Import-Module (Join-Path $Parent "PoshInternals.psd1") -Force
 	}
 
-	TestCase "DumpNotepad" {
+	Context "DumpNotepad" {
 		$TempPath = [System.IO.Path]::GetTempPath()
 
 		$NotepadDmp = Join-Path $TempPath "Notepad.dmp"

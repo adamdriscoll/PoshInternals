@@ -1,10 +1,9 @@
-TestFixture "AstTests" {
-	TestSetup {
-		$Parent = Split-Path (Split-Path $PSCommandPath -Parent)
-		Import-Module (Join-Path $Parent "PoshInternals.psd1") -Force
+Describe "AstTests" {
+	BeforeAll {
+		. (Join-Path $PSScriptRoot 'InitializeTest.ps1')
 	}
 
-	TestCase "RemoveExtentTest" {
+	Context "RemoveExtentTest" {
 		$tokens = $null 
 		$errors = $null
 
@@ -13,9 +12,11 @@ TestFixture "AstTests" {
 
 		$attribute = $attribute[1]
 
-		$actualBlock = Remove-Extent $scriptBlock $attribute.Extent -Verbose
+		$actualBlock = Remove-Extent $scriptBlock $attribute.Extent
 		$expectedBlock = ConvertTo-Ast '{ param([ref]$parameter) $parameter }'
 
-		$actualBlock.ToString() | Should be $expectedBlock.ToString()
+		It "should remove extent" {
+			$actualBlock.ToString() | Should be $expectedBlock.ToString()
+		}		
 	}
 }

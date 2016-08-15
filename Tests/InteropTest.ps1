@@ -1,10 +1,10 @@
-TestFixture "InteropTest" {
-	TestSetup {
+Describe "InteropTest" {
+	BeforeAll {
 		$Parent = Split-Path (Split-Path $PSCommandPath -Parent)
 		Import-Module (Join-Path $Parent "PoshInternals.psd1") -Force
 	}
 
-	TestCase "ConvertToObjectTest" {
+	Context "ConvertToObjectTest" {
 		$time = New-Object System.Runtime.InteropServices.ComTypes.FILETIME
 		$time.dwLowDateTime = 100
 

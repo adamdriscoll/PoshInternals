@@ -1,10 +1,10 @@
-TestFixture "MemoryMappedFileTest" {
-	TestSetup {
+Describe "MemoryMappedFileTest" {
+	BeforeAll {
 		$Parent = Split-Path (Split-Path $PSCommandPath -Parent)
 		Import-Module (Join-Path $Parent "PoshInternals.psd1") -Force
 	}
 
-	TestCase "ReadWriteFromMemoryMappedFile" {
+	Context "ReadWriteFromMemoryMappedFile" {
 		$MemoryMappedFile = New-MemoryMappedFile -Name "TestFile" -Size 1kb
 
 		"This is a test" | Out-MemoryMappedFile -MemoryMappedFile $MemoryMappedFile

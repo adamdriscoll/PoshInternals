@@ -29,6 +29,7 @@
   <ItemGroup>
     <Compile Include="ActivationContext.ps1" />
     <Compile Include="BlueScreen.ps1" />
+    <Compile Include="Tests\InitializeTest.ps1" />
     <Compile Include="Build\InvokeTests.ps1" />
     <Compile Include="Build\NewManifest.ps1" />
     <Compile Include="Build\PublishModule.ps1" />

@@ -1,10 +1,10 @@
-TestFixture "MutexTest" {
-	TestSetup {
+Describe "MutexTest" {
+	BeforeAll {
 		$Parent = Split-Path (Split-Path $PSCommandPath -Parent)
 		Import-Module (Join-Path $Parent "PoshInternals.psd1") -Force
 	}
 
-	TestCase "Lock Mutex" {
+	Context "Lock Mutex" {
 		$Mutex = New-Mutex -Name "MyMutex" -InitialOwner $true
 
 		try {
