@@ -15,3 +15,7 @@ test_script:
 
 deploy_script:
 - ps: .\Build\PublishModule.ps1
+
+environment:
+  ApiKey:
+    secure: jv+jb1IJtjQxAxQigSve12KwVeuu7evZk7Ot5PKapLebDyl2LHsQGcqZFQ8VeDxV
