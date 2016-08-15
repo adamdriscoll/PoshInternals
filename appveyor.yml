@@ -8,7 +8,7 @@ install:
 version: 1.0.{build}
 
 build_script:
-- ps: .\Build\CreateModuleManifest.ps1
+- ps: .\Build\NewManifest.ps1
 
 test_script:
 - ps: .\Build\InvokeTests.ps1
