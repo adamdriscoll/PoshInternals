@@ -25,14 +25,14 @@ else
 
 if ($env:APPVEYOR_PULL_REQUEST_NUMBER -eq $null)
 {
-    $res = Invoke-Pester -Path "..\Tests" -OutputFormat NUnitXml -OutputFile TestsResults.xml -PassThru -Tag Integration -CodeCoverage '.\*.psm1'
+    $res = Invoke-Pester -Path "$PSScriptRoot\..\Tests" -OutputFormat NUnitXml -OutputFile TestsResults.xml -PassThru -Tag Integration -CodeCoverage '.\*.psm1'
     (New-Object "System.Net.WebClient").UploadFile("https://ci.appveyor.com/api/testresults/nunit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path .\TestsResults.xml))
     if ($res.FailedCount -gt 0) { 
         throw "$($res.FailedCount) integration tests failed."
     }
 }
 
-$res = Invoke-Pester -Path "..\Tests" -OutputFormat NUnitXml -OutputFile TestsResults.xml -PassThru -Tag Unit
+$res = Invoke-Pester -Path "$PSScriptRoot\..\Tests" -OutputFormat NUnitXml -OutputFile TestsResults.xml -PassThru -Tag Unit
 (New-Object "System.Net.WebClient").UploadFile("https://ci.appveyor.com/api/testresults/nunit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path .\TestsResults.xml))
 if ($res.FailedCount -gt 0) { 
 	throw "$($res.FailedCount) unit tests failed."
